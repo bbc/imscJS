@@ -39,6 +39,12 @@
     imscNames.ns_ittp = "http://www.w3.org/ns/ttml/profile/imsc1#parameter";
     imscNames.ns_smpte = "http://www.smpte-ra.org/schemas/2052-1/2010/smpte-tt";
     imscNames.ns_ebutts = "urn:ebu:tt:style";
+
+    imscNames.ttaf_map = {
+        "http://www.w3.org/2006/10/ttaf1": imscNames.ns_tt,
+        "http://www.w3.org/2006/10/ttaf1#style": imscNames.ns_tts,
+        "http://www.w3.org/2006/10/ttaf1#parameter": imscNames.ns_ttp
+    };
     
 })(typeof exports === 'undefined' ? this.imscNames = {} : exports);
 

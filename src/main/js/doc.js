@@ -271,6 +271,21 @@
 
             }
 
+            function rewriteNamespace(obj) {
+                if (imscNames.ttaf_map[obj.uri]) {
+                    obj.uri = imscNames.ttaf_map[obj.uri];
+                }
+            }
+
+            // Make ttaf1 namespaces ttml ones.
+            rewriteNamespace(node);
+            if (node.attributes) {
+                for (var attr in node.attributes) {
+                    if (node.attributes.hasOwnProperty(attr)) {
+                        rewriteNamespace(node.attributes[attr]);
+                    }
+                }
+            }
 
             /* process the element */
 
@@ -1291,7 +1306,14 @@
 
 
     function elementGetXMLID(node) {
-        return node && 'xml:id' in node.attributes ? node.attributes['xml:id'].value || null : null;
+        var ret = null;
+        if (node) {
+            var idAttribute = node.attributes['xml:id'] || node.attributes.id;
+            if (idAttribute) {
+                ret = idAttribute.value || null;
+            }
+        }
+        return ret;
     }
 
     function elementGetRegionID(node) {
