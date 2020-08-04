@@ -1380,6 +1380,7 @@
                     /* per IMSC1 */
 
                     for (var i in attr) {
+                        attr[i] = attr[i].trim();
 
                         if (attr[i] === "monospaceSerif") {
 
@@ -1388,7 +1389,7 @@
                             rslt.push("Courier");
                             rslt.push("monospace");
 
-                        } else if (attr[i] === "proportionalSansSerif") {
+                        } else if (attr[i] === "proportionalSansSerif" || attr[i] === "default") {
 
                             rslt.push("Arial");
                             rslt.push("Helvetica");
