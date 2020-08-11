@@ -633,7 +633,7 @@
 
             /* create default region */
 
-            var dr = Region.prototype.createDefaultRegion(doc.lang);
+            var dr = Region.prototype.createDefaultRegion(doc, errorHandler);
 
             doc.head.layout.regions[dr.id] = dr;
 
@@ -1235,11 +1235,60 @@
     function Region() {
     }
 
-    Region.prototype.createDefaultRegion = function (xmllang) {
+    Region.prototype.createDefaultRegion = function (doc, errorHandler) {
         var r = new Region();
+        var defaultRegionAttr = {
+            "tts:displayAlign":{
+                "name":"tts:displayAlign",
+                "value":"after",
+                "prefix":"tts",
+                "local":"displayAlign",
+                "uri":"http://www.w3.org/ns/ttml#styling"
+            },
+            "tts:extent":{
+                "name":"tts:extent",
+                "value":"80% 20%",
+                "prefix":"tts",
+                "local":"extent",
+                "uri":"http://www.w3.org/ns/ttml#styling"
+            },
+            "tts:origin":{
+                "name":"tts:origin",
+                "value":"10% 70%",
+                "prefix":"tts",
+                "local":"origin",
+                "uri":"http://www.w3.org/ns/ttml#styling"
+            },
+            "tts:overflow":{
+                "name":"tts:overflow",
+                "value":"visible",
+                "prefix":"tts",
+                "local":"overflow",
+                "uri":"http://www.w3.org/ns/ttml#styling"
+            }
+        };
+        var defaultRegionNode = {
+            "name": "region",
+            "attributes": defaultRegionAttr,
+            "ns": {
+                "": "http://www.w3.org/ns/ttml",
+                "ebuttm": "urn:ebu:tt:metadata",
+                "ebutts": "urn:ebu:tt:style",
+                "ittp": "http://www.w3.org/ns/ttml/profile/imsc1#parameter",
+                "itts": "http://www.w3.org/ns/ttml/profile/imsc1#styling",
+                "ttm": "http://www.w3.org/ns/ttml#metadata",
+                "ttp": "http://www.w3.org/ns/ttml#parameter",
+                "tts": "http://www.w3.org/ns/ttml#styling",
+                "xml": "http://www.w3.org/XML/1998/namespace"
+            },
+            "prefix": "",
+            "local": "region",
+            "uri": "http://www.w3.org/ns/ttml",
+            "isSelfClosing": true
+        };
 
         IdentifiedElement.call(r, '');
-        StyledElement.call(r, {});
+        StyledElement.prototype.initFromNode.call(r, doc, null, defaultRegionNode, errorHandler);
         AnimatedElement.call(r, []);
         TimedElement.call(r, 0, Number.POSITIVE_INFINITY, null);
 
