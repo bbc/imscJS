@@ -756,7 +756,7 @@
         new StylingAttributeDefinition(
             imscNames.ns_tts,
             "showBackground",
-            "always",
+            "whenActive",
             ['region'],
             false,
             true,
