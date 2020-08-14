@@ -659,8 +659,35 @@
             cleanRubyContainers(doc.body);
         }
 
+        if (doc.body) {
+            pushBackgroundColorDown(doc.body);
+        }
+
         return doc;
     };
+
+    // Background colours on body or div look bad. As a post-parse step, move them to spans below (when undefined in the P)
+    function pushBackgroundColorDown(node, lastBG) {
+        var currentBG = node.styleAttrs && node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"];
+
+        if (node.kind === "span") {
+            if (!currentBG && lastBG) {
+                if (!node.styleAttrs) {
+                    node.styleAttrs = {};
+                }
+                node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"] = lastBG;
+            }
+        } else {
+            if (currentBG) {
+                delete node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"];
+            }
+            if (node.contents) {
+                for (var i = 0; i < node.contents.length; i++) {
+                    pushBackgroundColorDown(node.contents[i], currentBG || lastBG);
+                }
+            }
+        }
+    }
 
     function cleanRubyContainers(element) {
         
