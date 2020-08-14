@@ -48,7 +48,7 @@
         new StylingAttributeDefinition(
             imscNames.ns_tts,
             "backgroundColor",
-            "#000000D0",
+            "transparent",
             ['body', 'div', 'p', 'region', 'span'],
             false,
             true,
