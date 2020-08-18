@@ -1,7 +1,10 @@
 {
-    "name": "imsc",
-    "description": "Renders IMSC documents to HTML5 fragments",
-    "version": "1.1.2",
+    "name": "smp-imsc",
+    "description": "SMP fork of imsc js",
+    "version": "1.0.0",
+    "publishConfig": {
+        "tag": "latest"
+    },
     "license": "BSD-2-Clause",
     "homepage": "https://github.com/sandflow/imscJS",
     "bugs": "https://github.com/sandflow/imscJS/issues",
@@ -25,9 +28,10 @@
     ],
     "author": "Pierre-Anthony Lemieux <pal@sandflow.com>",
     "main": "src/main/js/main.js",
-    "unpkg": "dist/imsc.min.js",
     "scripts": {
-        "prepublishOnly": "grunt build:release"
+        "prepublishOnly": "grunt build:release",
+        "version": "grunt build:release && git add -A dist",
+        "postversion": "git push && git push --tags"
     },
     "dependencies": {
         "sax": "1.2.1"
