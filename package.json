@@ -31,7 +31,7 @@
     "scripts": {
         "prepublishOnly": "grunt build:release",
         "version": "grunt build:release && git add -A dist",
-        "postversion": "git push && git push --tags"
+        "postversion": "git push origin HEAD && git push --tags"
     },
     "dependencies": {
         "sax": "1.2.1"
