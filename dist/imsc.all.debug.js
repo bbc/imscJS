@@ -8185,6 +8185,7 @@ function config (name) {
     };
 
     // Background colours on body or div look bad. As a post-parse step, move them to spans below (when undefined in the P)
+    // Force the span to be black when there is no background colour defined above.
     function pushBackgroundColorDown(node, lastBG) {
         var currentBG = node.styleAttrs && node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"];
 
@@ -8194,6 +8195,11 @@ function config (name) {
                     node.styleAttrs = {};
                 }
                 node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"] = lastBG;
+            } else {
+                if (!node.styleAttrs) {
+                    node.styleAttrs = {};
+                }
+                node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"] = imscUtils.parseColor('black');
             }
         } else {
             if (currentBG) {
