@@ -55,6 +55,7 @@
         "node-qunit": "^1.0.0",
         "qunit-assert-close": "latest",
         "qunitjs": "latest",
+        "rollup": "^2.34.1",
         "rollup-plugin-terser": "^7.0.2"
     }
 }
