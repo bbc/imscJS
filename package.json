@@ -30,7 +30,7 @@
     "main": "src/main/js/main.js",
     "scripts": {
         "prepublishOnly": "grunt build:release",
-        "version": "grunt build:release && gulp && git add -A dist pom.xml",
+        "version": "grunt build:release && gulp && git add -A dist && git add pom.xml",
         "postversion": "git push --tags"
     },
     "dependencies": {
