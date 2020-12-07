@@ -667,7 +667,7 @@
                     node.styleAttrs = {};
                 }
                 node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"] = lastBG;
-            } else if (!currentBg && !lastBG) {
+            } else if (!currentBG && !lastBG) {
                 if (!node.styleAttrs) {
                     node.styleAttrs = {};
                 }
