@@ -8195,7 +8195,7 @@ function config (name) {
                     node.styleAttrs = {};
                 }
                 node.styleAttrs["http://www.w3.org/ns/ttml#styling backgroundColor"] = lastBG;
-            } else {
+            } else if (!currentBg && !lastBG) {
                 if (!node.styleAttrs) {
                     node.styleAttrs = {};
                 }
