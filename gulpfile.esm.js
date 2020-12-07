@@ -3,16 +3,17 @@ const rollup = require('rollup');
 import {terser} from 'rollup-plugin-terser';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from "@rollup/plugin-commonjs";
+import nodePolyfills from 'rollup-plugin-node-polyfills';
 
 //no unit tests or jshint or anything, just piggyback on the grunt ones and assume it'll be run together.
 
 function bundle(debug) {
     const inConfig = {
         input: './src/main/js/main.js',
-        format: "es",
         plugins: [
-            resolve(),
-            commonjs()
+            resolve({browser: true, preferBuiltins: false}),
+            commonjs(),
+            nodePolyfills()
         ]
     };
 
@@ -21,7 +22,7 @@ function bundle(debug) {
     }
 
     const outConfig = {
-        format: 'esm',
+        format: "esm",
         file: 'dist/imsc.all.' + (debug ? 'debug' : 'min') + '.mjs'
     };
 
