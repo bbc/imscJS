@@ -1966,6 +1966,10 @@
      * is called for the next ISD, otherwise <code>previousISDState</code> should be set to 
      * <code>null</code>.
      * 
+     * The <pre>options</pre> parameter can be used to configure adjustments
+     * that change the presentation away from the document defaults:
+     * <pre>sizeAdjust: {number}</pre> scales the text size and line padding
+     * 
      * @param {Object} isd ISD to be rendered
      * @param {Object} element Element into which the ISD is rendered
      * @param {?IMGResolver} imgResolver Resolve <pre>smpte:background</pre> URIs into URLs.
@@ -1978,6 +1982,7 @@
      * @param {?module:imscUtils.ErrorHandler} errorHandler Error callback
      * @param {Object} previousISDState State saved during processing of the previous ISD, or null if initial call
      * @param {?boolean} enableRollUp Enables roll-up animations (see CEA 708)
+     * @param {?Object} options Configuration options
      * @return {Object} ISD state to be provided when this funtion is called for the next ISD
      */
 
@@ -1989,7 +1994,8 @@
             displayForcedOnlyMode,
             errorHandler,
             previousISDState,
-            enableRollUp
+            enableRollUp,
+            options
             ) {
 
         /* maintain aspect ratio if specified */
@@ -2044,7 +2050,8 @@
             bpd: null, /* block progression direction (lr, rl, tb) */
             ruby: null, /* is ruby present in a <p> */
             textEmphasis: null, /* is textEmphasis present in a <p> */
-            rubyReserve: null /* is rubyReserve applicable to a <p> */
+            rubyReserve: null, /* is rubyReserve applicable to a <p> */
+            options: options ? options : {}
         };
 
         element.appendChild(rootcontainer);
@@ -2222,7 +2229,7 @@
 
         if (lp && (! lp.isZero())) {
 
-            var plength = lp.toUsedLength(context.w, context.h);
+            var plength = lp.multiply(lp.toUsedLength(context.w, context.h), context.options.sizeAdjust);
 
 
             if (plength > 0) {
@@ -2389,7 +2396,7 @@
 
             if (context.lp) {
 
-                applyLinePadding(linelist, context.lp.toUsedLength(context.w, context.h), context);
+                applyLinePadding(linelist, context.lp.multiply(context.lp.toUsedLength(context.w, context.h), context.options.sizeAdjust), context);
 
                 context.lp = null;
 
@@ -3208,7 +3215,7 @@
         new HTMLStylingMapDefintion(
                 "http://www.w3.org/ns/ttml#styling fontSize",
                 function (context, dom_element, isd_element, attr) {
-                    dom_element.style.fontSize = attr.toUsedLength(context.w, context.h) + "px";
+                    dom_element.style.fontSize = attr.multiply(attr.toUsedLength(context.w, context.h), context.options.sizeAdjust) + "px";
                 }
         ),
 
@@ -3233,7 +3240,7 @@
 
                     } else {
 
-                        dom_element.style.lineHeight = attr.toUsedLength(context.w, context.h) + "px";
+                        dom_element.style.lineHeight = attr.multiply(attr.toUsedLength(context.w, context.h), context.options.sizeAdjust) + "px";
                     }
                 }
         ),
@@ -6057,6 +6064,10 @@ exports.renderHTML = require('./html').render;
 
     imscUtils.ComputedLength.prototype.toUsedLength = function (width, height) {
         return width * this.rw + height * this.rh;
+    };
+
+    imscUtils.ComputedLength.prototype.multiply = function (value, factor) {
+        return factor ? value * factor: value;
     };
 
     imscUtils.ComputedLength.prototype.isZero = function () {
