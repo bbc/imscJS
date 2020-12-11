@@ -345,6 +345,10 @@
         return width * this.rw + height * this.rh;
     };
 
+    imscUtils.ComputedLength.prototype.multiply = function (value, factor) {
+        return factor ? value * factor: value;
+    };
+
     imscUtils.ComputedLength.prototype.isZero = function () {
         return this.rw === 0 && this.rh === 0;
     };
