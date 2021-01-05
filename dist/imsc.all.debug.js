@@ -9479,7 +9479,7 @@ function config (name) {
  */
 
 ;
-(function (imscHTML, imscNames, imscStyles) {
+(function (imscHTML, imscNames, imscStyles, imscUtils) {
 
     /**
      * Function that maps <pre>smpte:background</pre> URIs to URLs resolving to image resource
@@ -9508,6 +9508,12 @@ function config (name) {
      * The <pre>options</pre> parameter can be used to configure adjustments
      * that change the presentation away from the document defaults:
      * <pre>sizeAdjust: {number}</pre> scales the text size and line padding
+     * <pre>backgroundOpacityScale: {number}</pre> scales the backgroundColor opacity
+     * <pre>fontFamily: {string}</pre> comma-separated list of font family values to use, if present.
+     * <pre>colorAdjust: {documentColor: replaceColor*}</pre> map of document colors and the value with which to replace them
+     * <pre>colorOpacityScale: {number}</pre> opacity override on text color (ignored if zero)
+     * <pre>regionOpacityScale: {number}</pre> scales the region opacity
+     * <pre>textOutline: {string}</pre> textOutline value to use, if present
      * 
      * @param {Object} isd ISD to be rendered
      * @param {Object} element Element into which the ISD is rendered
@@ -9570,6 +9576,10 @@ function config (name) {
         rootcontainer.style.right = 0;
         rootcontainer.style.zIndex = 0;
 
+        if (options && options.colorAdjust) {
+            options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
+        }
+
         var context = {
             h: height,
             w: width,
@@ -9590,7 +9600,7 @@ function config (name) {
             ruby: null, /* is ruby present in a <p> */
             textEmphasis: null, /* is textEmphasis present in a <p> */
             rubyReserve: null, /* is rubyReserve applicable to a <p> */
-            options: options ? options : {}
+            options: options || {}
         };
 
         element.appendChild(rootcontainer);
@@ -9604,6 +9614,19 @@ function config (name) {
         return context.currentISDState;
 
     };
+
+    function preprocessColorMapOptions(colorAdjustMap) {
+        var canonicalColorMap = {};
+        colorAdjustMapEntries = Object.entries(colorAdjustMap);
+        for (var i in colorAdjustMapEntries) {
+            fromColor = imscUtils.parseColor(colorAdjustMapEntries[i][0]);
+            toColor = imscUtils.parseColor(colorAdjustMapEntries[i][1]);
+            if (fromColor && toColor) {
+                canonicalColorMap[fromColor.toString()] = toColor;
+            }
+        };
+        return canonicalColorMap;
+    }
 
     function processElement(context, dom_parent, isd_element) {
 
@@ -10651,26 +10674,46 @@ function config (name) {
                 "http://www.w3.org/ns/ttml#styling backgroundColor",
                 function (context, dom_element, isd_element, attr) {
 
+                    var opacity = attr[3];
+
                     /* skip if transparent */
-                    if (attr[3] === 0)
+                    if (opacity === 0)
                         return;
+
+                    if (context.options.backgroundOpacityScale != undefined)
+                        opacity = opacity * context.options.backgroundOpacityScale;
+
+                    opacity = opacity / 255;
 
                     dom_element.style.backgroundColor = "rgba(" +
                             attr[0].toString() + "," +
                             attr[1].toString() + "," +
                             attr[2].toString() + "," +
-                            (attr[3] / 255).toString() +
+                            opacity.toString() +
                             ")";
                 }
         ),
         new HTMLStylingMapDefintion(
                 "http://www.w3.org/ns/ttml#styling color",
                 function (context, dom_element, isd_element, attr) {
+                    /*
+                     * <pre>colorAdjust: {documentColor: replaceColor*}</pre> map of document colors and the value with which to replace them
+                     * <pre>colorOpacityScale: {number}</pre> opacity multiplier on text color (ignored if zero)
+                     */
+                    opacityMultiplier = context.options.colorOpacityScale || 1;
+
+                    colorAdjustMap = context.options.colorAdjust;
+                    if (colorAdjustMap != undefined) {
+                        map_attr = colorAdjustMap[attr.toString()];
+                        if (map_attr)
+                            attr = map_attr;
+                    }
+
                     dom_element.style.color = "rgba(" +
                             attr[0].toString() + "," +
                             attr[1].toString() + "," +
                             attr[2].toString() + "," +
-                            (attr[3] / 255).toString() +
+                            (opacityMultiplier * attr[3] / 255).toString() +
                             ")";
                 }
         ),
@@ -10754,6 +10797,10 @@ function config (name) {
                     var rslt = [];
 
                     /* per IMSC1 */
+
+                    if (context.options.fontFamily) {
+                        attr = context.options.fontFamily.split(",");
+                    }
 
                     for (var i in attr) {
                         attr[i] = attr[i].trim();
@@ -10866,7 +10913,17 @@ function config (name) {
         new HTMLStylingMapDefintion(
                 "http://www.w3.org/ns/ttml#styling opacity",
                 function (context, dom_element, isd_element, attr) {
-                    dom_element.style.opacity = attr;
+                    /*
+                     * Customisable using <pre>regionOpacityScale: {number}</pre>
+                     * which acts as a multiplier.
+                     */
+                    var opacity = attr;
+
+                    if (context.options.regionOpacityScale != undefined) {
+                        opacity = opacity * context.options.regionOpacityScale;
+                    }
+
+                    dom_element.style.opacity = opacity;
                 }
         ),
         new HTMLStylingMapDefintion(
@@ -11002,6 +11059,38 @@ function config (name) {
                 function (context, dom_element, isd_element, attr) {
 
                     var txto = isd_element.styleAttrs[imscStyles.byName.textOutline.qname];
+                    var otxto = context.options.textOutline;
+                    if (otxto) {
+                        if (otxto === "none") {
+
+                            txto = otxto;
+
+                        } else {
+                            var r = {};
+                            var os = otxto.split(" ");
+                            if (os.length !== 0 && os.length <= 2)
+                            {
+                                var c = imscUtils.parseColor(os[0]);
+
+                                r.color = c;
+
+                                if (c !== null)
+                                    os.shift();
+
+                                if (os.length === 1)
+                                {
+                                    var l = imscUtils.parseLength(os[0]);
+
+                                    if (l)
+                                    {
+                                        r.thickness = l;
+
+                                        txto = r;
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (attr === "none" && txto === "none") {
 
