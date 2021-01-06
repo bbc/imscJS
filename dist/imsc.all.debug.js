@@ -9576,8 +9576,12 @@ function config (name) {
         rootcontainer.style.right = 0;
         rootcontainer.style.zIndex = 0;
 
-        if (options && options.colorAdjust) {
-            options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
+        if (options) { 
+            if (options.colorAdjust)
+                options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
+            
+            if (options.spanBackgroundColorAdjust)
+                options.spanBackgroundColorAdjust = preprocessColorMapOptions(options.spanBackgroundColorAdjust);
         }
 
         var context = {
@@ -10674,12 +10678,23 @@ function config (name) {
                 "http://www.w3.org/ns/ttml#styling backgroundColor",
                 function (context, dom_element, isd_element, attr) {
 
+                    var backgroundColorAdjustMap = null;
+                    if (isd_element.kind == "span")
+                        backgroundColorAdjustMap = context.options.spanBackgroundColorAdjust;
+
+                    if (backgroundColorAdjustMap != undefined) {
+                        map_attr = backgroundColorAdjustMap[attr.toString()];
+                        if (map_attr)
+                            attr = map_attr;
+                    }
+
                     var opacity = attr[3];
 
                     /* skip if transparent */
                     if (opacity === 0)
                         return;
 
+                    /* make sure that we allow a multiplier of 0 here*/
                     if (context.options.backgroundOpacityScale != undefined)
                         opacity = opacity * context.options.backgroundOpacityScale;
 
