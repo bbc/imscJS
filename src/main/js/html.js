@@ -28,6 +28,8 @@
  * @module imscHTML
  */
 
+backgroundColorAdjustSuffix = "BackgroundColorAdjust";
+
 ;
 (function (imscHTML, imscNames, imscStyles, imscUtils) {
 
@@ -64,6 +66,7 @@
      * <pre>colorOpacityScale: {number}</pre> opacity override on text color (ignored if zero)
      * <pre>regionOpacityScale: {number}</pre> scales the region opacity
      * <pre>textOutline: {string}</pre> textOutline value to use, if present
+     * <pre>[span|p|div|body|region]BackgroundColorAdjust: {documentColor: replaceColor*}</pre> map of backgroundColors and the value with which to replace them for each element type
      * 
      * @param {Object} isd ISD to be rendered
      * @param {Object} element Element into which the ISD is rendered
@@ -130,8 +133,14 @@
             if (options.colorAdjust)
                 options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
             
-            if (options.spanBackgroundColorAdjust)
-                options.spanBackgroundColorAdjust = preprocessColorMapOptions(options.spanBackgroundColorAdjust);
+            var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
+            var propName;
+            for (var bgcei in bgcColorElements)
+            {
+                propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
+                if (options[propName])
+                    options[propName] = preprocessColorMapOptions(options[propName]);
+            }
         }
 
         var context = {
@@ -1309,15 +1318,12 @@
                 "http://www.w3.org/ns/ttml#styling backgroundColor",
                 function (context, dom_element, isd_element, attr) {
 
-                    var backgroundColorAdjustMap = null;
-                    if (isd_element.kind == "span")
-                        backgroundColorAdjustMap = context.options.spanBackgroundColorAdjust;
-
-                    if (backgroundColorAdjustMap != undefined) {
-                        map_attr = backgroundColorAdjustMap[attr.toString()];
-                        if (map_attr)
-                            attr = map_attr;
-                    }
+                    backgroundColorAdjustMap = 
+                        context.options[isd_element.kind + backgroundColorAdjustSuffix];
+                    
+                    map_attr = backgroundColorAdjustMap && backgroundColorAdjustMap[attr.toString()];
+                    if (map_attr)
+                        attr = map_attr;
 
                     var opacity = attr[3];
 
