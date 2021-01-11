@@ -149,20 +149,35 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             ruby: null, /* is ruby present in a <p> */
             textEmphasis: null, /* is textEmphasis present in a <p> */
             rubyReserve: null, /* is rubyReserve applicable to a <p> */
-            options: options || {}
+            options: {}, /* we'll populate this imminently */
         };
 
-        if (context.options) { 
-            if (context.options.colorAdjust)
-            context.options.colorAdjust = preprocessColorMapOptions(context.options.colorAdjust);
+        if (options) { 
+            /* copy across the properties we can take directly */
+            var optionsProperties = [
+                "sizeAdjust",
+                "backgroundOpacityScale",
+                "fontFamily",
+                "colorOpacityScale",
+                "regionOpacityScale",
+                "textOutline",
+            ];
+            for (var opi in optionsProperties)
+            {
+                context.options[optionsProperties[opi]] = options[optionsProperties[opi]];
+            }
+
+            /* canonicalise and copy colour adjustment maps */
+            if (options.colorAdjust)
+                context.options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
             
             var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
             var propName;
             for (var bgcei in bgcColorElements)
             {
                 propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
-                if (context.options[propName])
-                context.options[propName] = preprocessColorMapOptions(context.options[propName]);
+                if (options[propName])
+                context.options[propName] = preprocessColorMapOptions(options[propName]);
             }
         }
 
