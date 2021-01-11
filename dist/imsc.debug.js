@@ -2051,20 +2051,6 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         rootcontainer.style.right = 0;
         rootcontainer.style.zIndex = 0;
 
-        if (options) { 
-            if (options.colorAdjust)
-                options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
-            
-            var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
-            var propName;
-            for (var bgcei in bgcColorElements)
-            {
-                propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
-                if (options[propName])
-                    options[propName] = preprocessColorMapOptions(options[propName]);
-            }
-        }
-
         var context = {
             h: height,
             w: width,
@@ -2087,6 +2073,20 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             rubyReserve: null, /* is rubyReserve applicable to a <p> */
             options: options || {}
         };
+
+        if (context.options) { 
+            if (context.options.colorAdjust)
+            context.options.colorAdjust = preprocessColorMapOptions(context.options.colorAdjust);
+            
+            var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
+            var propName;
+            for (var bgcei in bgcColorElements)
+            {
+                propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
+                if (context.options[propName])
+                context.options[propName] = preprocessColorMapOptions(context.options[propName]);
+            }
+        }
 
         element.appendChild(rootcontainer);
 
