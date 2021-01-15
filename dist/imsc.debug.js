@@ -1982,6 +1982,7 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
      * The <pre>options</pre> parameter can be used to configure adjustments
      * that change the presentation away from the document defaults:
      * <pre>sizeAdjust: {number}</pre> scales the text size and line padding
+     * <pre>lineHeightAdjust: {number}</pre> scales the line height
      * <pre>backgroundOpacityScale: {number}</pre> scales the backgroundColor opacity
      * <pre>fontFamily: {string}</pre> comma-separated list of font family values to use, if present.
      * <pre>colorAdjust: {documentColor: replaceColor*}</pre> map of document colors and the value with which to replace them
@@ -2071,36 +2072,21 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             ruby: null, /* is ruby present in a <p> */
             textEmphasis: null, /* is textEmphasis present in a <p> */
             rubyReserve: null, /* is rubyReserve applicable to a <p> */
-            options: {}, /* we'll populate this imminently */
+            options: Object.assign({}, options) || {}, /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#deep_clone : */
+            /* this isn't a get-out-of-jail for avoiding mutation of the incoming options if we ever put an object reference into options */
         };
 
-        if (options) { 
-            /* copy across the properties we can take directly */
-            var optionsProperties = [
-                "sizeAdjust",
-                "backgroundOpacityScale",
-                "fontFamily",
-                "colorOpacityScale",
-                "regionOpacityScale",
-                "textOutline",
-            ];
-            for (var opi in optionsProperties)
-            {
-                context.options[optionsProperties[opi]] = options[optionsProperties[opi]];
-            }
-
-            /* canonicalise and copy colour adjustment maps */
-            if (options.colorAdjust)
-                context.options.colorAdjust = preprocessColorMapOptions(options.colorAdjust);
-            
-            var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
-            var propName;
-            for (var bgcei in bgcColorElements)
-            {
-                propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
-                if (options[propName])
-                context.options[propName] = preprocessColorMapOptions(options[propName]);
-            }
+        /* canonicalise and copy colour adjustment maps */
+        if (context.options.colorAdjust)
+            context.options.colorAdjust = preprocessColorMapOptions(context.options.colorAdjust);
+        
+        var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
+        var propName;
+        for (var bgcei in bgcColorElements)
+        {
+            propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
+            if (context.options[propName])
+            context.options[propName] = preprocessColorMapOptions(context.options[propName]);
         }
 
         element.appendChild(rootcontainer);
@@ -3414,7 +3400,11 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                     } else {
 
-                        dom_element.style.lineHeight = attr.multiply(attr.toUsedLength(context.w, context.h), context.options.sizeAdjust) + "px";
+                        dom_element.style.lineHeight = 
+                            attr.multiply(
+                                attr.multiply(
+                                    attr.toUsedLength(context.w, context.h), context.options.sizeAdjust),
+                                context.options.lineHeightAdjust) + "px";
                     }
                 }
         ),
@@ -4844,7 +4834,10 @@ exports.renderHTML = require('./html').render;
             imscNames.ns_tts,
             "fontFamily",
             "default",
-            ['span'],
+            [
+                'p',
+                'span',
+            ],
             true,
             true,
             function (str) {
@@ -4908,7 +4901,10 @@ exports.renderHTML = require('./html').render;
             imscNames.ns_tts,
             "fontSize",
             "1c",
-            ['span'],
+            [
+                'p',
+                'span',
+            ],
             true,
             true,
             imscUtils.parseLength,
