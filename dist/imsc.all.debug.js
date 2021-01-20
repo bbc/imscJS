@@ -11183,7 +11183,7 @@ function config (name) {
 
         /* Filter body contents - Only process what we need within the offset and discard regions not applicable to the content */
         var body = {};
-        var regions = [];
+        var regions = new Set();
 
         for (var prop in tt.body) {
             body[prop] = tt.body[prop];
@@ -11195,7 +11195,7 @@ function config (name) {
             var containerContents = container.contents.filter(function (element) {
                 if (!(offset < element.begin || offset >= element.end)) {
                     if (element.regionID) {
-                        regions.push(element.regionID);
+                        regions.add(element.regionID);
                     }
                     return true;
                 }
@@ -11212,8 +11212,13 @@ function config (name) {
 
             body.contents[index] = newContainer;
         });
+
+        /* This will be a rewritten TTAF1 file, nested elements do not have a regionID */
+        if (regions.length === 0 && tt.head.layout.regions[""]) {
+            regions.add("");
+        }
         
-        /* process regions */
+        /* process regions */        
 
         for (var r in regions) {
 
