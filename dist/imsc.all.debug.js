@@ -7242,7 +7242,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
       }
     }())
   }
-})(typeof exports === 'undefined' ? this.sax = {} : exports)
+})(exports)
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":3,"stream":29,"string_decoder":30}],29:[function(require,module,exports){
@@ -11181,13 +11181,45 @@ function config (name) {
 
         };
 
+        /* Filter body contents - Only process what we need within the offset and discard regions not applicable to the content */
+        var body = {};
+        var regions = [];
+
+        for (var prop in tt.body) {
+            body[prop] = tt.body[prop];
+        }
+
+        body.contents = [];
+
+        tt.body.contents.forEach(function (container, index) {
+            var containerContents = container.contents.filter(function (element) {
+                if (!(offset < element.begin || offset >= element.end)) {
+                    if (element.regionID) {
+                        regions.push(element.regionID);
+                    }
+                    return true;
+                }
+                return false;
+            });
+
+            var newContainer = {};
+
+            for (var prop in container) {
+                newContainer[prop] = container[prop];
+            }
+
+            newContainer.contents = containerContents;
+
+            body.contents[index] = newContainer;
+        });
+        
         /* process regions */
 
-        for (var r in tt.head.layout.regions) {
+        for (var r in regions) {
 
             /* post-order traversal of the body tree per [construct intermediate document] */
 
-            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[r], tt.body, null, '', tt.head.layout.regions[r], errorHandler, context);
+            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regions[r]], body, null, '', tt.head.layout.regions[regions[r]], errorHandler, context);
 
             if (c !== null) {
 
