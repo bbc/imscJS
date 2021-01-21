@@ -7242,7 +7242,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
       }
     }())
   }
-})(exports)
+})(typeof exports === 'undefined' ? this.sax = {} : exports)
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":3,"stream":29,"string_decoder":30}],29:[function(require,module,exports){
@@ -11183,7 +11183,7 @@ function config (name) {
 
         /* Filter body contents - Only process what we need within the offset and discard regions not applicable to the content */
         var body = {};
-        // var activeRegions = new Set();
+        var activeRegions = new Set();
 
         function filter(offset, element) {
             function offsetFilter(element) {
@@ -11200,6 +11200,10 @@ function config (name) {
                 element.contents.filter(offsetFilter).forEach(function (el) {
                     
                     var filteredElement = filter(offset, el);
+
+                    if (filteredElement.regionID) {
+                        activeRegions.add(filteredElement.regionID);
+                    }
         
                     if (filteredElement !== null) {
                         clone.contents.push(filteredElement);
@@ -11214,13 +11218,12 @@ function config (name) {
         body = filter(offset, tt.body);
 
         
-        /* process regions */        
+        /* process regions */      
 
-        for (var r in tt.head.layout.regions) {
-
+        activeRegions.forEach(function (regionID) {
             /* post-order traversal of the body tree per [construct intermediate document] */
 
-            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[r], body, null, '', tt.head.layout.regions[r], errorHandler, context);
+            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regionID], body, null, '', tt.head.layout.regions[regionID], errorHandler, context);
 
             if (c !== null) {
 
@@ -11228,8 +11231,7 @@ function config (name) {
 
                 isd.contents.push(c.element);
             }
-
-        }
+        });
 
         return isd;
     };
