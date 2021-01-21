@@ -3672,10 +3672,7 @@
                 element.contents.filter(offsetFilter).forEach(function (el) {
                     
                     var filteredElement = filter(offset, el);
-
-                    if (filteredElement.regionID) {
-                        activeRegions.add(filteredElement.regionID);
-                    }
+                    activeRegions.add(filteredElement.regionID);
         
                     if (filteredElement !== null) {
                         clone.contents.push(filteredElement);
@@ -3689,6 +3686,10 @@
 
         body = filter(offset, tt.body);
 
+        /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
+        if (activeRegions.length === 0 && tt.head.layout.regions.length > 0) {
+            activeRegions.add("");
+        }
         
         /* process regions */      
 

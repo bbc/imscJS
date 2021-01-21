@@ -7242,7 +7242,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
       }
     }())
   }
-})(typeof exports === 'undefined' ? this.sax = {} : exports)
+})(exports)
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":3,"stream":29,"string_decoder":30}],29:[function(require,module,exports){
@@ -11200,10 +11200,7 @@ function config (name) {
                 element.contents.filter(offsetFilter).forEach(function (el) {
                     
                     var filteredElement = filter(offset, el);
-
-                    if (filteredElement.regionID) {
-                        activeRegions.add(filteredElement.regionID);
-                    }
+                    activeRegions.add(filteredElement.regionID);
         
                     if (filteredElement !== null) {
                         clone.contents.push(filteredElement);
@@ -11217,6 +11214,10 @@ function config (name) {
 
         body = filter(offset, tt.body);
 
+        /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
+        if (activeRegions.length === 0 && tt.head.layout.regions.length > 0) {
+            activeRegions.add("");
+        }
         
         /* process regions */      
 
