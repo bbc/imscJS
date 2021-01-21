@@ -3687,7 +3687,7 @@
         body = filter(offset, tt.body);
 
         /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
-        if (activeRegions.length === 0 && tt.head.layout.regions.hasOwnProperty("")) {
+        if (activeRegions.size === 0 && tt.head.layout.regions.hasOwnProperty("")) {
             activeRegions.add("");
         }
         
