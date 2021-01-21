@@ -11183,48 +11183,44 @@ function config (name) {
 
         /* Filter body contents - Only process what we need within the offset and discard regions not applicable to the content */
         var body = {};
-        var regions = new Set();
+        // var activeRegions = new Set();
 
-        for (var prop in tt.body) {
-            body[prop] = tt.body[prop];
-        }
-
-        body.contents = [];
-
-        tt.body.contents.forEach(function (container, index) {
-            var containerContents = container.contents.filter(function (element) {
-                if (!(offset < element.begin || offset >= element.end)) {
-                    if (element.regionID) {
-                        regions.add(element.regionID);
-                    }
-                    return true;
+        function filter(offset, element) {
+            function offsetFilter(element) {
+                return !(offset < element.begin || offset >= element.end);    
+            }    
+        
+            if (element.contents) {
+                var clone = {};
+                for (var prop in element) {
+                    clone[prop] = element[prop];
                 }
-                return false;
-            });
+                clone.contents = [];
 
-            var newContainer = {};
-
-            for (var prop in container) {
-                newContainer[prop] = container[prop];
+                element.contents.filter(offsetFilter).forEach(function (el) {
+                    
+                    var filteredElement = filter(offset, el);
+        
+                    if (filteredElement !== null) {
+                        clone.contents.push(filteredElement);
+                    }
+                });
+                return clone;
+            } else {
+                return element;
             }
-
-            newContainer.contents = containerContents;
-
-            body.contents[index] = newContainer;
-        });
-
-        /* This will be a rewritten TTAF1 file, nested elements do not have a regionID */
-        if (regions.length === 0 && tt.head.layout.regions[""]) {
-            regions.add("");
         }
+
+        body = filter(offset, tt.body);
+
         
         /* process regions */        
 
-        for (var r in regions) {
+        for (var r in tt.head.layout.regions) {
 
             /* post-order traversal of the body tree per [construct intermediate document] */
 
-            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regions[r]], body, null, '', tt.head.layout.regions[regions[r]], errorHandler, context);
+            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[r], body, null, '', tt.head.layout.regions[r], errorHandler, context);
 
             if (c !== null) {
 
@@ -11232,7 +11228,6 @@ function config (name) {
 
                 isd.contents.push(c.element);
             }
-
 
         }
 
