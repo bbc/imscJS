@@ -11215,7 +11215,7 @@ function config (name) {
         body = filter(offset, tt.body);
 
         /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
-        if (activeRegions.length === 0 && tt.head.layout.regions.length > 0) {
+        if (activeRegions.length === 0 && tt.head.layout.regions.hasOwnProperty("")) {
             activeRegions.add("");
         }
         
