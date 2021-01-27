@@ -7,4 +7,4 @@ For more detailed changes, please use the commit history.
 ## Changes
 
 - Handle TTML1 1st Edition CR ttaf namespace declarations
-
+- Performance improvements for `generateISD`. [#6](https://github.com/bbc/imscJS/pull/6)
