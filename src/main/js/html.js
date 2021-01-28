@@ -180,10 +180,10 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
     function preprocessColorMapOptions(colorAdjustMap) {
         var canonicalColorMap = {};
-        colorAdjustMapEntries = Object.entries(colorAdjustMap);
+        var colorAdjustMapEntries = Object.entries(colorAdjustMap);
         for (var i in colorAdjustMapEntries) {
-            fromColor = imscUtils.parseColor(colorAdjustMapEntries[i][0]);
-            toColor = imscUtils.parseColor(colorAdjustMapEntries[i][1]);
+            var fromColor = imscUtils.parseColor(colorAdjustMapEntries[i][0]);
+            var toColor = imscUtils.parseColor(colorAdjustMapEntries[i][1]);
             if (fromColor && toColor) {
                 canonicalColorMap[fromColor.toString()] = toColor;
             }
@@ -1356,7 +1356,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                     var colorAdjustMap = context.options.colorAdjust;
                     if (colorAdjustMap != undefined) {
-                        map_attr = colorAdjustMap[attr.toString()];
+                        var map_attr = colorAdjustMap[attr.toString()];
                         if (map_attr)
                             attr = map_attr;
                     }
