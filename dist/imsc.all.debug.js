@@ -9478,9 +9478,8 @@ function config (name) {
  * @module imscHTML
  */
 
-backgroundColorAdjustSuffix = "BackgroundColorAdjust";
+var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
-;
 (function (imscHTML, imscNames, imscStyles, imscUtils) {
 
     /**
@@ -10688,10 +10687,10 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 "http://www.w3.org/ns/ttml#styling backgroundColor",
                 function (context, dom_element, isd_element, attr) {
 
-                    backgroundColorAdjustMap = 
+                    var backgroundColorAdjustMap =
                         context.options[isd_element.kind + backgroundColorAdjustSuffix];
                     
-                    map_attr = backgroundColorAdjustMap && backgroundColorAdjustMap[attr.toString()];
+                    var map_attr = backgroundColorAdjustMap && backgroundColorAdjustMap[attr.toString()];
                     if (map_attr)
                         attr = map_attr;
 
@@ -10722,9 +10721,9 @@ backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                      * <pre>colorAdjust: {documentColor: replaceColor*}</pre> map of document colors and the value with which to replace them
                      * <pre>colorOpacityScale: {number}</pre> opacity multiplier on text color (ignored if zero)
                      */
-                    opacityMultiplier = context.options.colorOpacityScale || 1;
+                    var opacityMultiplier = context.options.colorOpacityScale || 1;
 
-                    colorAdjustMap = context.options.colorAdjust;
+                    var colorAdjustMap = context.options.colorAdjust;
                     if (colorAdjustMap != undefined) {
                         map_attr = colorAdjustMap[attr.toString()];
                         if (map_attr)
