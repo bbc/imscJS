@@ -1041,12 +1041,22 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                             thisNode.node.style.paddingBottom = padding;
 
+                        if (pad>maxPad) {
+                            maxPad=pad;
                         }
-
                     }
-
                 }
+                var n=element.getElementsByTagName("span");
+                var thisNode=n[i];
+//                        e.node.style.backgroundColor = e.bgcolor;
 
+                if (context.bpd === "lr") {
+                    thisNode.style.paddingRight = maxPad+"px";
+                } else if (context.bpd === "rl") {
+                    thisNode.style.paddingLeft = maxPad+"px";
+                } else if (context.bpd === "tb") {
+                    thisNode.style.paddingBottom = maxPad+"px";
+                }
             }
 
             /* after line */
