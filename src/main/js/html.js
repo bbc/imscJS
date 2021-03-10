@@ -557,8 +557,8 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                 context.removePaddingElement.style.paddingLeft=0;
                 context.removePaddingElement.style.paddingRight=0;
-                context.removePaddingElement.style.paddingTop=0;
-                context.removePaddingElement.style.paddingBottom=0;
+                /*                context.removePaddingElement.style.paddingTop=0;
+                context.removePaddingElement.style.paddingBottom=0;*/
                 context.lp = null;
 
             }
@@ -1001,7 +1001,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         /* positive for BPD = lr and tb, negative for BPD = rl */
         var s = Math.sign(par_after - par_before);
 
-        for (var i = 0; i <= lineList.length; i++) {
+        for (var i = 0; i < lineList.length; i++) {
 
             /* compute frontier between lines */
 
@@ -1053,17 +1053,30 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 }
                 var n=element.getElementsByTagName("span");
                 var thisNode=n[i];
-//                        e.node.style.backgroundColor = e.bgcolor;
-
-                if (context.bpd === "lr") {
-                    thisNode.style.paddingRight = maxPad+"px";
-                } else if (context.bpd === "rl") {
-                    thisNode.style.paddingLeft = maxPad+"px";
-                } else if (context.bpd === "tb") {
-                    thisNode.style.paddingBottom = maxPad+"px";
+                if (!lineList[i] || thisNode.childElementCount==lineList[i].elements.length) {
+// this works for m000sm34
+                    if (context.bpd === "lr") {
+                        thisNode.style.paddingRight = maxPad+"px";
+                    } else if (context.bpd === "rl") {
+                        thisNode.style.paddingLeft = maxPad+"px";
+                    } else if (context.bpd === "tb") {
+                        thisNode.style.paddingBottom = maxPad+"px";
+                    }
+                } else {
+// this works for p08m5t9c with regions
+                    for (var l=0;l<lineList[i-1].elements.length;l++) {
+                        thisNode=lineList[i-1].elements[l];
+                        var border=maxPad+"px solid "+thisNode.bgcolor;
+                        if (context.bpd === "lr") {
+                            thisNode.node.style.borderRight = border;
+                        } else if (context.bpd === "rl") {
+                            thisNode.node.style.borderLeft = border;
+                        } else if (context.bpd === "tb") {
+                            thisNode.node.style.borderBottom = border;
+                        }
+                    }
                 }
             }
-
             /* after line */
             if (i < lineList.length) {
 
