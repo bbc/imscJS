@@ -382,7 +382,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                     proc_e.style.paddingBottom = padmeasure;
 
                 }
-
+                context.removePaddingElement=proc_e;
                 context.lp = lp;
             }
         }
@@ -554,6 +554,11 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                 applyLinePadding(linelist, context.lp.multiply(context.lp.toUsedLength(context.w, context.h), context.options.sizeAdjust), context);
 
+
+                context.removePaddingElement.style.paddingLeft=0;
+                context.removePaddingElement.style.paddingRight=0;
+                context.removePaddingElement.style.paddingTop=0;
+                context.removePaddingElement.style.paddingBottom=0;
                 context.lp = null;
 
             }
@@ -1174,7 +1179,6 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                     });
 
                 } else {
-
                     /* positive for BPD = lr and tb, negative for BPD = rl */
                     var bpd_dir = Math.sign(edges.after - edges.before);
 
@@ -1264,7 +1268,6 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     }
 
     function isSameLine(before1, after1, before2, after2) {
-
         return ((after1 < after2) && (before1 > before2)) || ((after2 <= after1) && (before2 >= before1));
 
     }
