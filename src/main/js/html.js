@@ -1055,8 +1055,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                         }
                     }
                 }
-                var n=element.getElementsByTagName("span");
-                var thisNode=n[i];
+                thisNode=element.getElementsByTagName("span")[i];
                 if (!lineList[i] || thisNode.childElementCount==lineList[i].elements.length) {
 // this works for m000sm34
                     if (context.bpd === "lr") {
@@ -1068,9 +1067,9 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                     }
                 } else {
 // this works for p08m5t9c with regions
-                    for (var l=0;l<lineList[i-1].elements.length;l++) {
+                    for (l=0;l<lineList[i-1].elements.length;l++) {
                         thisNode=lineList[i-1].elements[l];
-                        var border=maxPad+"px solid "+thisNode.bgcolor;
+                        border=maxPad+"px solid "+thisNode.bgcolor;
                         if (context.bpd === "lr") {
                             thisNode.node.style.borderRight = border;
                         } else if (context.bpd === "rl") {
