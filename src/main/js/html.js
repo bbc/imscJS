@@ -1005,7 +1005,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         /* positive for BPD = lr and tb, negative for BPD = rl */
         var s = Math.sign(par_after - par_before);
 
-        for (var i = 0; i < lineList.length; i++) {
+        for (var i = 0; i <= lineList.length; i++) {
 
             /* compute frontier between lines */
 
