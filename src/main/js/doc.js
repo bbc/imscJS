@@ -99,9 +99,9 @@
                 /* flatten chained referential styling */
 
                 for (var sid in estack[0].styles) {
-
-                    mergeChainedStyles(estack[0], estack[0].styles[sid], errorHandler);
-
+                    if (estack[0].styles.hasOwnProperty(sid)) {
+                        mergeChainedStyles(estack[0], estack[0].styles[sid], errorHandler);
+                    }
                 }
 
             } else if (estack[0] instanceof P || estack[0] instanceof Span) {
@@ -377,9 +377,9 @@
                         ini.initFromNode(node, errorHandler);
                         
                         for (var qn in ini.styleAttrs) {
-                            
-                            doc.head.styling.initials[qn] = ini.styleAttrs[qn];
-                            
+                            if (ini.styleAttrs.hasOwnProperty(qn)) {
+                                doc.head.styling.initials[qn] = ini.styleAttrs[qn];
+                            }
                         }
                         
                         estack.unshift(ini);
@@ -591,12 +591,14 @@
                     var attrs = [];
 
                     for (var a in node.attributes) {
-                        attrs[node.attributes[a].uri + " " + node.attributes[a].local] =
+                        if (node.attributes.hasOwnProperty(a)) {
+                            attrs[node.attributes[a].uri + " " + node.attributes[a].local] =
                                 {
                                     uri: node.attributes[a].uri,
                                     local: node.attributes[a].local,
                                     value: node.attributes[a].value
                                 };
+                        }
                     }
 
                     metadataHandler.onOpenTag(node.uri, node.local, attrs);
@@ -622,11 +624,11 @@
         /* AFAIK the only way to determine whether an object has members */
 
         for (var i in doc.head.layout.regions) {
+            if (doc.head.layout.regions.hasOwnProperty(i)) {
+                hasRegions = true;
 
-            hasRegions = true;
-
-            break;
-
+                break;
+            }
         }
 
         if (!hasRegions) {
@@ -642,9 +644,9 @@
         /* resolve desired timing for regions */
 
         for (var region_i in doc.head.layout.regions) {
-
-            resolveTiming(doc, doc.head.layout.regions[region_i], null, null);
-
+            if (doc.head.layout.regions.hasOwnProperty(region_i)) {
+                resolveTiming(doc, doc.head.layout.regions[region_i], null, null);
+            }
         }
 
         /* resolve desired timing for content elements */
@@ -756,21 +758,21 @@
         var s = null;
 
         for (var set_i in element.sets) {
+            if (element.sets.hasOwnProperty(set_i)) {
+                resolveTiming(doc, element.sets[set_i], s, element);
 
-            resolveTiming(doc, element.sets[set_i], s, element);
+                if (element.timeContainer === "seq") {
+                    
+                    implicit_end = element.sets[set_i].end;
+                    
+                } else {
+                    
+                    implicit_end = Math.max(implicit_end, element.sets[set_i].end);
+                    
+                }
 
-            if (element.timeContainer === "seq") {
-
-                implicit_end = element.sets[set_i].end;
-
-            } else {
-
-                implicit_end = Math.max(implicit_end, element.sets[set_i].end);
-
+                s = element.sets[set_i];
             }
-
-            s = element.sets[set_i];
-
         }
 
         if (!('contents' in element)) {
@@ -794,21 +796,21 @@
         } else {
 
             for (var content_i in element.contents) {
+                if (element.contents.hasOwnProperty(content_i)) {
+                    resolveTiming(doc, element.contents[content_i], s, element);
 
-                resolveTiming(doc, element.contents[content_i], s, element);
-
-                if (element.timeContainer === "seq") {
-
-                    implicit_end = element.contents[content_i].end;
-
-                } else {
-
-                    implicit_end = Math.max(implicit_end, element.contents[content_i].end);
-
+                    if (element.timeContainer === "seq") {
+                       
+                        implicit_end = element.contents[content_i].end;
+                       
+                    } else {
+                       
+                        implicit_end = Math.max(implicit_end, element.contents[content_i].end);
+                       
+                    }
+                    
+                    s = element.contents[content_i];
                 }
-
-                s = element.contents[content_i];
-
             }
 
         }
@@ -1022,15 +1024,15 @@
         this.styleAttrs = {};
         
         for (var i in node.attributes) {
-
-            if (node.attributes[i].uri === imscNames.ns_itts ||
-                node.attributes[i].uri === imscNames.ns_ebutts ||
-                node.attributes[i].uri === imscNames.ns_tts) {
+            if (node.attributes.hasOwnProperty(i)) {
+                if (node.attributes[i].uri === imscNames.ns_itts ||
+                    node.attributes[i].uri === imscNames.ns_ebutts ||
+                    node.attributes[i].uri === imscNames.ns_tts) {
                 
-                var qname = node.attributes[i].uri + " " + node.attributes[i].local;
+                    var qname = node.attributes[i].uri + " " + node.attributes[i].local;
                 
-                this.styleAttrs[qname] = node.attributes[i].value;
-
+                    this.styleAttrs[qname] = node.attributes[i].value;
+                }
             }
         }
         
@@ -1360,17 +1362,17 @@
         this.value = null;
 
         for (var qname in styles) {
+            if (styles.hasOwnProperty(qname)) {
+                if (this.qname) {
 
-            if (this.qname) {
+                    reportError(errorHandler, "More than one style specified on set");
+                    break;
 
-                reportError(errorHandler, "More than one style specified on set");
-                break;
+                }
 
+                this.qname = qname;
+                this.value = styles[qname];
             }
-
-            this.qname = qname;
-            this.value = styles[qname];
-
         }
 
     };
@@ -1431,31 +1433,31 @@
         if (node !== null) {
 
             for (var i in node.attributes) {
+                if (node.attributes.hasOwnProperty(i)) {
+                    var qname = node.attributes[i].uri + " " + node.attributes[i].local;
 
-                var qname = node.attributes[i].uri + " " + node.attributes[i].local;
+                    var sa = imscStyles.byQName[qname];
 
-                var sa = imscStyles.byQName[qname];
+                    if (sa !== undefined) {
 
-                if (sa !== undefined) {
+                        var val = sa.parse(node.attributes[i].value);
 
-                    var val = sa.parse(node.attributes[i].value);
+                        if (val !== null) {
 
-                    if (val !== null) {
+                            s[qname] = val;
 
-                        s[qname] = val;
+                            /* TODO: consider refactoring errorHandler into parse and compute routines */
 
-                        /* TODO: consider refactoring errorHandler into parse and compute routines */
+                            if (sa === imscStyles.byName.zIndex) {
+                                reportWarning(errorHandler, "zIndex attribute present but not used by IMSC1 since regions do not overlap");
+                            }
 
-                        if (sa === imscStyles.byName.zIndex) {
-                            reportWarning(errorHandler, "zIndex attribute present but not used by IMSC1 since regions do not overlap");
+                        } else {
+
+                            reportError(errorHandler, "Cannot parse styling attribute " + qname + " --> " + node.attributes[i].value);
+
                         }
-
-                    } else {
-
-                        reportError(errorHandler, "Cannot parse styling attribute " + qname + " --> " + node.attributes[i].value);
-
                     }
-
                 }
 
             }
@@ -1467,11 +1469,12 @@
 
     function findAttribute(node, ns, name) {
         for (var i in node.attributes) {
-
-            if (node.attributes[i].uri === ns &&
+            if (node.attributes.hasOwnProperty(i)) {
+                if (node.attributes[i].uri === ns &&
                     node.attributes[i].local === name) {
 
-                return node.attributes[i].value;
+                    return node.attributes[i].value;
+                }
             }
         }
 
@@ -1845,12 +1848,12 @@
     function mergeStylesIfNotPresent(from_styles, into_styles) {
 
         for (var sname in from_styles) {
+            if (from_styles.hasOwnProperty(sname)) {
+                if (sname in into_styles)
+                    continue;
 
-            if (sname in into_styles)
-                continue;
-
-            into_styles[sname] = from_styles[sname];
-
+                into_styles[sname] = from_styles[sname];
+            }
         }
 
     }
