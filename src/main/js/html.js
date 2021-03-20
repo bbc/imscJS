@@ -1062,12 +1062,14 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 thisNode=element.getElementsByTagName("span")[i];
                 if (!lineList[i] || thisNode.childElementCount==lineList[i].elements.length) {
 // this works for m000sm34
-                    if (context.bpd === "lr") {
-                        thisNode.style.paddingRight = maxPad+"px";
-                    } else if (context.bpd === "rl") {
-                        thisNode.style.paddingLeft = maxPad+"px";
-                    } else if (context.bpd === "tb") {
-                        thisNode.style.paddingBottom = maxPad+"px";
+                    if (thisNode.style.borderBottom=="") {
+                        if (context.bpd === "lr") {
+                            thisNode.style.paddingRight = maxPad+"px";
+                        } else if (context.bpd === "rl") {
+                            thisNode.style.paddingLeft = maxPad+"px";
+                        } else if (context.bpd === "tb") {
+                            thisNode.style.paddingBottom = maxPad+"px";
+                        }
                     }
                 } else {
 // this works for p08m5t9c with regions
