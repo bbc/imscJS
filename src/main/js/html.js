@@ -1005,13 +1005,14 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     }
 
     function applyFillLineGap(lineList, par_before, par_after, context, element) {
-
         /* positive for BPD = lr and tb, negative for BPD = rl */
         var s = Math.sign(par_after - par_before);
 
         for (var i = 0; i <= lineList.length; i++) {
 
             /* compute frontier between lines */
+
+            var maxPad = 0;
 
             var frontier;
 
