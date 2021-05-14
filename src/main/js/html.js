@@ -586,7 +586,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
             }
 
-            mergeSpans(proc_e);
+            mergeSpans(linelist);
         }
 
 
