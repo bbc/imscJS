@@ -11445,7 +11445,32 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* Filter body contents - Only process what we need within the offset and discard regions not applicable to the content */
         var body = {};
-        var activeRegions = new Set();
+        var activeRegions = {};
+
+        /* gather any regions that might have showBackground="always" and show a background */
+        initialShowBackground = tt.head.styling.initials[imscStyles.byName.showBackground.qname];
+        initialbackgroundColor = tt.head.styling.initials[imscStyles.byName.backgroundColor.qname];
+        initialbackgroundImage = tt.head.styling.initials[imscStyles.byName.backgroundImage.qname];
+        for (var layout_child in tt.head.layout.regions)
+        {
+            if (tt.head.layout.regions.hasOwnProperty(layout_child)) {
+                region = tt.head.layout.regions[layout_child];
+                showBackground = region.styleAttrs[imscStyles.byName.showBackground.qname] || initialShowBackground;
+                backgroundColor = region.styleAttrs[imscStyles.byName.backgroundColor.qname] || initialbackgroundColor;
+                backgroundImage = region.styleAttrs[imscStyles.byName.backgroundImage.qname] || initialbackgroundImage;
+                activeRegions[region.id] = (
+                    (showBackground === 'always' || showBackground === undefined) &&
+                    (backgroundColor !== undefined || backgroundImage !== undefined) &&
+                    !(offset < region.begin || offset >= region.end)
+                    );
+            }
+        }
+
+        /* If the body specifies a region, catch it, since no filtered content will */
+        /* likely specify the region. */
+        if (tt.body && tt.body.regionID) {
+            activeRegions[tt.body.regionID] = true;
+        }
 
         function filter(offset, element) {
             function offsetFilter(element) {
@@ -11464,7 +11489,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 element.contents.filter(offsetFilter).forEach(function (el) {
                     var filteredElement = filter(offset, el);
                     if (filteredElement.regionID) {
-                        activeRegions.add(filteredElement.regionID);
+                        activeRegions[filteredElement.regionID] = true;
                     }
         
                     if (filteredElement !== null) {
@@ -11477,27 +11502,32 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             }
         }
 
-        body = filter(offset, tt.body);
+        if (tt.body !== null) {
+            body = filter(offset, tt.body);
+        } else {
+            body = null;
+        }
 
         /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
-        if (activeRegions.size === 0 && tt.head.layout.regions.hasOwnProperty("")) {
-            activeRegions.add("");
+        if (Object.getOwnPropertyNames(activeRegions).length === 1 && activeRegions[""] !== undefined) {
+            activeRegions[""] = true;
         }
-        
+
         /* process regions */      
+        for (var regionID in activeRegions) {
+            if (activeRegions[regionID]) {
+                /* post-order traversal of the body tree per [construct intermediate document] */
 
-        activeRegions.forEach(function (regionID) {
-            /* post-order traversal of the body tree per [construct intermediate document] */
+                var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regionID], body, null, '', tt.head.layout.regions[regionID], errorHandler, context);
 
-            var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regionID], body, null, '', tt.head.layout.regions[regionID], errorHandler, context);
+                if (c !== null) {
 
-            if (c !== null) {
+                    /* add the region to the ISD */
 
-                /* add the region to the ISD */
-
-                isd.contents.push(c.element);
+                    isd.contents.push(c.element);
+                }
             }
-        });
+        }
 
         return isd;
     };
