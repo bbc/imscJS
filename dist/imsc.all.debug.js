@@ -11507,7 +11507,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         }
 
         /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
-        if (Object.getOwnPropertyNames(activeRegions).length === 1 && activeRegions[""] !== undefined) {
+        if (activeRegions[""] !== undefined) {
             activeRegions[""] = true;
         }
 
