@@ -6307,27 +6307,13 @@ SafeBuffer.allocUnsafeSlow = function (size) {
     return Stream.prototype.on.call(me, ev, handler)
   }
 
-  // character classes and tokens
-  var whitespace = '\r\n\t '
-
   // this really needs to be replaced with character classes.
   // XML allows all manner of ridiculous numbers and digits.
-  var number = '0124356789'
-  var letter = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
-  // (Letter | "_" | ":")
-  var quote = '\'"'
-  var attribEnd = whitespace + '>'
   var CDATA = '[CDATA['
   var DOCTYPE = 'DOCTYPE'
   var XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace'
   var XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/'
   var rootNS = { xml: XML_NAMESPACE, xmlns: XMLNS_NAMESPACE }
-
-  // turn all the string character sets into character class objects.
-  whitespace = charClass(whitespace)
-  number = charClass(number)
-  letter = charClass(letter)
 
   // http://www.w3.org/TR/REC-xml/#NT-NameStartChar
   // This implementation works on strings, a single character at a time
@@ -6337,31 +6323,29 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   // is left as an exercise for the reader.
   var nameStart = /[:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD]/
 
-  var nameBody = /[:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u00B7\u0300-\u036F\u203F-\u2040\.\d-]/
+  var nameBody = /[:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u00B7\u0300-\u036F\u203F-\u2040.\d-]/
 
   var entityStart = /[#:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD]/
-  var entityBody = /[#:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u00B7\u0300-\u036F\u203F-\u2040\.\d-]/
+  var entityBody = /[#:_A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u00B7\u0300-\u036F\u203F-\u2040.\d-]/
 
-  quote = charClass(quote)
-  attribEnd = charClass(attribEnd)
-
-  function charClass (str) {
-    return str.split('').reduce(function (s, c) {
-      s[c] = true
-      return s
-    }, {})
+  function isWhitespace (c) {
+    return c === ' ' || c === '\n' || c === '\r' || c === '\t'
   }
 
-  function isRegExp (c) {
-    return Object.prototype.toString.call(c) === '[object RegExp]'
+  function isQuote (c) {
+    return c === '"' || c === '\''
   }
 
-  function is (charclass, c) {
-    return isRegExp(charclass) ? !!c.match(charclass) : charclass[c]
+  function isAttribEnd (c) {
+    return c === '>' || isWhitespace(c)
   }
 
-  function not (charclass, c) {
-    return !is(charclass, c)
+  function isMatch (regex, c) {
+    return regex.test(c)
+  }
+
+  function notMatch (regex, c) {
+    return !isMatch(regex, c)
   }
 
   var S = 0
@@ -6994,7 +6978,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
       }
     }
     entity = entity.replace(/^0+/, '')
-    if (numStr.toLowerCase() !== entity) {
+    if (isNaN(num) || numStr.toLowerCase() !== entity) {
       strictFail(parser, 'Invalid character entity')
       return '&' + parser.entity + ';'
     }
@@ -7006,7 +6990,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
     if (c === '<') {
       parser.state = S.OPEN_WAKA
       parser.startTagPosition = parser.position
-    } else if (not(whitespace, c)) {
+    } else if (!isWhitespace(c)) {
       // have to process this as a text node.
       // weird, but happens.
       strictFail(parser, 'Non-whitespace before first tag.')
@@ -7043,9 +7027,11 @@ SafeBuffer.allocUnsafeSlow = function (size) {
     while (true) {
       c = charAt(chunk, i++)
       parser.c = c
+
       if (!c) {
         break
       }
+
       if (parser.trackPosition) {
         parser.position++
         if (c === '\n') {
@@ -7055,6 +7041,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           parser.column++
         }
       }
+
       switch (parser.state) {
         case S.BEGIN:
           parser.state = S.BEGIN_WHITESPACE
@@ -7089,7 +7076,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser.state = S.OPEN_WAKA
             parser.startTagPosition = parser.position
           } else {
-            if (not(whitespace, c) && (!parser.sawRoot || parser.closedRoot)) {
+            if (!isWhitespace(c) && (!parser.sawRoot || parser.closedRoot)) {
               strictFail(parser, 'Text data outside of root node.')
             }
             if (c === '&') {
@@ -7123,9 +7110,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           if (c === '!') {
             parser.state = S.SGML_DECL
             parser.sgmlDecl = ''
-          } else if (is(whitespace, c)) {
+          } else if (isWhitespace(c)) {
             // wait for it...
-          } else if (is(nameStart, c)) {
+          } else if (isMatch(nameStart, c)) {
             parser.state = S.OPEN_TAG
             parser.tagName = c
           } else if (c === '/') {
@@ -7168,7 +7155,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             emitNode(parser, 'onsgmldeclaration', parser.sgmlDecl)
             parser.sgmlDecl = ''
             parser.state = S.TEXT
-          } else if (is(quote, c)) {
+          } else if (isQuote(c)) {
             parser.state = S.SGML_DECL_QUOTED
             parser.sgmlDecl += c
           } else {
@@ -7193,7 +7180,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser.doctype += c
             if (c === '[') {
               parser.state = S.DOCTYPE_DTD
-            } else if (is(quote, c)) {
+            } else if (isQuote(c)) {
               parser.state = S.DOCTYPE_QUOTED
               parser.q = c
             }
@@ -7212,7 +7199,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           parser.doctype += c
           if (c === ']') {
             parser.state = S.DOCTYPE
-          } else if (is(quote, c)) {
+          } else if (isQuote(c)) {
             parser.state = S.DOCTYPE_DTD_QUOTED
             parser.q = c
           }
@@ -7296,7 +7283,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
         case S.PROC_INST:
           if (c === '?') {
             parser.state = S.PROC_INST_ENDING
-          } else if (is(whitespace, c)) {
+          } else if (isWhitespace(c)) {
             parser.state = S.PROC_INST_BODY
           } else {
             parser.procInstName += c
@@ -7304,7 +7291,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.PROC_INST_BODY:
-          if (!parser.procInstBody && is(whitespace, c)) {
+          if (!parser.procInstBody && isWhitespace(c)) {
             continue
           } else if (c === '?') {
             parser.state = S.PROC_INST_ENDING
@@ -7328,7 +7315,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.OPEN_TAG:
-          if (is(nameBody, c)) {
+          if (isMatch(nameBody, c)) {
             parser.tagName += c
           } else {
             newTag(parser)
@@ -7337,7 +7324,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             } else if (c === '/') {
               parser.state = S.OPEN_TAG_SLASH
             } else {
-              if (not(whitespace, c)) {
+              if (!isWhitespace(c)) {
                 strictFail(parser, 'Invalid character in tag name')
               }
               parser.state = S.ATTRIB
@@ -7357,13 +7344,13 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 
         case S.ATTRIB:
           // haven't read the attribute name yet.
-          if (is(whitespace, c)) {
+          if (isWhitespace(c)) {
             continue
           } else if (c === '>') {
             openTag(parser)
           } else if (c === '/') {
             parser.state = S.OPEN_TAG_SLASH
-          } else if (is(nameStart, c)) {
+          } else if (isMatch(nameStart, c)) {
             parser.attribName = c
             parser.attribValue = ''
             parser.state = S.ATTRIB_NAME
@@ -7380,9 +7367,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser.attribValue = parser.attribName
             attrib(parser)
             openTag(parser)
-          } else if (is(whitespace, c)) {
+          } else if (isWhitespace(c)) {
             parser.state = S.ATTRIB_NAME_SAW_WHITE
-          } else if (is(nameBody, c)) {
+          } else if (isMatch(nameBody, c)) {
             parser.attribName += c
           } else {
             strictFail(parser, 'Invalid attribute name')
@@ -7392,7 +7379,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
         case S.ATTRIB_NAME_SAW_WHITE:
           if (c === '=') {
             parser.state = S.ATTRIB_VALUE
-          } else if (is(whitespace, c)) {
+          } else if (isWhitespace(c)) {
             continue
           } else {
             strictFail(parser, 'Attribute without value')
@@ -7405,7 +7392,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser.attribName = ''
             if (c === '>') {
               openTag(parser)
-            } else if (is(nameStart, c)) {
+            } else if (isMatch(nameStart, c)) {
               parser.attribName = c
               parser.state = S.ATTRIB_NAME
             } else {
@@ -7416,9 +7403,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.ATTRIB_VALUE:
-          if (is(whitespace, c)) {
+          if (isWhitespace(c)) {
             continue
-          } else if (is(quote, c)) {
+          } else if (isQuote(c)) {
             parser.q = c
             parser.state = S.ATTRIB_VALUE_QUOTED
           } else {
@@ -7443,13 +7430,13 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.ATTRIB_VALUE_CLOSED:
-          if (is(whitespace, c)) {
+          if (isWhitespace(c)) {
             parser.state = S.ATTRIB
           } else if (c === '>') {
             openTag(parser)
           } else if (c === '/') {
             parser.state = S.OPEN_TAG_SLASH
-          } else if (is(nameStart, c)) {
+          } else if (isMatch(nameStart, c)) {
             strictFail(parser, 'No whitespace between attributes')
             parser.attribName = c
             parser.attribValue = ''
@@ -7460,7 +7447,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.ATTRIB_VALUE_UNQUOTED:
-          if (not(attribEnd, c)) {
+          if (!isAttribEnd(c)) {
             if (c === '&') {
               parser.state = S.ATTRIB_VALUE_ENTITY_U
             } else {
@@ -7478,9 +7465,9 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 
         case S.CLOSE_TAG:
           if (!parser.tagName) {
-            if (is(whitespace, c)) {
+            if (isWhitespace(c)) {
               continue
-            } else if (not(nameStart, c)) {
+            } else if (notMatch(nameStart, c)) {
               if (parser.script) {
                 parser.script += '</' + c
                 parser.state = S.SCRIPT
@@ -7492,14 +7479,14 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             }
           } else if (c === '>') {
             closeTag(parser)
-          } else if (is(nameBody, c)) {
+          } else if (isMatch(nameBody, c)) {
             parser.tagName += c
           } else if (parser.script) {
             parser.script += '</' + parser.tagName
             parser.tagName = ''
             parser.state = S.SCRIPT
           } else {
-            if (not(whitespace, c)) {
+            if (!isWhitespace(c)) {
               strictFail(parser, 'Invalid tagname in closing tag')
             }
             parser.state = S.CLOSE_TAG_SAW_WHITE
@@ -7507,7 +7494,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
           continue
 
         case S.CLOSE_TAG_SAW_WHITE:
-          if (is(whitespace, c)) {
+          if (isWhitespace(c)) {
             continue
           }
           if (c === '>') {
@@ -7543,7 +7530,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
             parser[buffer] += parseEntity(parser)
             parser.entity = ''
             parser.state = returnState
-          } else if (is(parser.entity.length ? entityBody : entityStart, c)) {
+          } else if (isMatch(parser.entity.length ? entityBody : entityStart, c)) {
             parser.entity += c
           } else {
             strictFail(parser, 'Invalid character in entity name')
@@ -7566,6 +7553,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   }
 
   /*! http://mths.be/fromcodepoint v0.1.0 by @mathias */
+  /* istanbul ignore next */
   if (!String.fromCodePoint) {
     (function () {
       var stringFromCharCode = String.fromCharCode
@@ -7607,6 +7595,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
         }
         return result
       }
+      /* istanbul ignore next */
       if (Object.defineProperty) {
         Object.defineProperty(String, 'fromCodePoint', {
           value: fromCodePoint,
@@ -10696,7 +10685,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     
                 if (context.ipd === "lr") {
 
-                    se.node.marginLeft = negpadpxlen;
+                    se.node.style.marginLeft = negpadpxlen;
                     se.node.style.paddingLeft = pospadpxlen;
 
                 } else if (context.ipd === "rl") {

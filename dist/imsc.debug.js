@@ -2705,7 +2705,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     
                 if (context.ipd === "lr") {
 
-                    se.node.marginLeft = negpadpxlen;
+                    se.node.style.marginLeft = negpadpxlen;
                     se.node.style.paddingLeft = pospadpxlen;
 
                 } else if (context.ipd === "rl") {
