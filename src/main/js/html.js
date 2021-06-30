@@ -712,7 +712,9 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 for (var i = 0; i < second.style.length; i++) {
 
                     var styleName = second.style[i];
-                    if (styleName.indexOf("border") >= 0 || styleName.indexOf("padding") >= 0) {
+                    if (styleName.indexOf("border") >= 0 || 
+                        styleName.indexOf("padding") >= 0 ||
+                        styleName.indexOf("margin") >= 0) {
 
                         first.style[styleName] = second.style[styleName];
 
@@ -754,7 +756,8 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                     }
 
                 }
-    
+
+                // Start element
                 if (context.ipd === "lr") {
 
                     se.node.style.marginLeft = negpadpxlen;
@@ -772,6 +775,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                 }
 
+                // End element
                 if (context.ipd === "lr") {
 
                     ee.node.style.paddingRight = pospadpxlen;
