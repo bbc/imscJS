@@ -2660,7 +2660,9 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 for (var i = 0; i < second.style.length; i++) {
 
                     var styleName = second.style[i];
-                    if (styleName.indexOf("border") >= 0 || styleName.indexOf("padding") >= 0) {
+                    if (styleName.indexOf("border") >= 0 || 
+                        styleName.indexOf("padding") >= 0 ||
+                        styleName.indexOf("margin") >= 0) {
 
                         first.style[styleName] = second.style[styleName];
 
@@ -2679,19 +2681,34 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         for (var i=0;i<lineList.length;i++) {
             var l = lineList[i].elements.length;
 
-            var se = lineList[i].elements[lineList[i].start_elem];
-
-            var ee = lineList[i].elements[lineList[i].end_elem];
-
             var pospadpxlen = Math.ceil(lp) + "px";
 
             var negpadpxlen = "-" + Math.ceil(lp) + "px";
 
             if (l !== 0) {
 
+                var se = lineList[i].elements[lineList[i].start_elem];
+
+                var ee = lineList[i].elements[lineList[i].end_elem];
+
+                if (se === ee) {
+
+                    // Check to see if there's any background at all
+                    elementBoundingRect = se.node.getBoundingClientRect();
+                    
+                    if (elementBoundingRect.width == 0 || elementBoundingRect.height == 0) {
+
+                        // There's no background on this line, move on.
+                        continue;
+
+                    }
+
+                }
+
+                // Start element
                 if (context.ipd === "lr") {
 
-                    se.node.marginLeft = negpadpxlen;
+                    se.node.style.marginLeft = negpadpxlen;
                     se.node.style.paddingLeft = pospadpxlen;
 
                 } else if (context.ipd === "rl") {
@@ -2706,6 +2723,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                 }
 
+                // End element
                 if (context.ipd === "lr") {
 
                     ee.node.style.paddingRight = pospadpxlen;
