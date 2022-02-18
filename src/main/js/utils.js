@@ -135,11 +135,11 @@
 
     imscUtils.parseTextShadow = function (str) {
 
-        var shadows = str.split(",");
-
+        var shadows = str.match(/([^\(,\)]|\([^\)]+\))+/g);
+        
         var r = [];
 
-        for (var i=0;i<shadows.length;i++) {
+        for (var i = 0; i < shadows.length; i++) {
 
             var shadow = shadows[i].split(" ");
 
@@ -231,19 +231,17 @@
 
         /* initial clean-up pass */
 
-        for (var j in s) {
-            if (s.hasOwnProperty(j)) {
-                if (!isKeyword(s[j])) {
+        for (var j = 0 ; j < s.length; j++) {
 
-                    var l = imscUtils.parseLength(s[j]);
+            if (!isKeyword(s[j])) {
 
-                    if (l === null)
-                        return null;
+                var l = imscUtils.parseLength(s[j]);
 
-                    s[j] = l;
-                }
+                if (l === null)
+                    return null;
+
+                s[j] = l;
             }
-
         }
 
         /* position default */

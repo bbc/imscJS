@@ -8054,7 +8054,7 @@ function config (name) {
      * @returns {Object} Opaque in-memory representation of an IMSC1 document
      */
 
-    imscDoc.fromXML = function (xmlstring, errorHandler, metadataHandler) {
+    imscDoc.fromXML = function (xmlstring, errorHandler, metadataHandler, preparse) {
         var p = sax.parser(true, {xmlns: true});
         var estack = [];
         var xmllangstack = [];
@@ -8063,8 +8063,10 @@ function config (name) {
         var doc = null;
 
         p.onclosetag = function (node) {
+            if (preparse && typeof preparse.onclosetag === "function") {
+                preparse.onclosetag(node);
+            }
 
-            
             if (estack[0] instanceof Region) {
 
                 /* merge referenced styles */
@@ -8080,9 +8082,11 @@ function config (name) {
                 /* flatten chained referential styling */
 
                 for (var sid in estack[0].styles) {
-                    if (estack[0].styles.hasOwnProperty(sid)) {
-                        mergeChainedStyles(estack[0], estack[0].styles[sid], errorHandler);
-                    }
+
+                    if (! estack[0].styles.hasOwnProperty(sid)) continue;
+
+                    mergeChainedStyles(estack[0], estack[0].styles[sid], errorHandler);
+
                 }
 
             } else if (estack[0] instanceof P || estack[0] instanceof Span) {
@@ -8162,6 +8166,9 @@ function config (name) {
         };
 
         p.ontext = function (str) {
+            if (preparse && typeof preparse.ontext === "function") {
+                preparse.ontext(str);
+            }
 
             if (estack[0] === undefined) {
 
@@ -8206,6 +8213,9 @@ function config (name) {
 
 
         p.onopentag = function (node) {
+            if (preparse && typeof preparse.onopentag === "function") {
+                preparse.onopentag(node);
+            }
 
             // maintain the xml:space stack
 
@@ -8358,9 +8368,11 @@ function config (name) {
                         ini.initFromNode(node, errorHandler);
                         
                         for (var qn in ini.styleAttrs) {
-                            if (ini.styleAttrs.hasOwnProperty(qn)) {
-                                doc.head.styling.initials[qn] = ini.styleAttrs[qn];
-                            }
+
+                            if (! ini.styleAttrs.hasOwnProperty(qn)) continue;
+                            
+                            doc.head.styling.initials[qn] = ini.styleAttrs[qn];
+                            
                         }
                         
                         estack.unshift(ini);
@@ -8607,9 +8619,9 @@ function config (name) {
         for (var i in doc.head.layout.regions) {
             if (doc.head.layout.regions.hasOwnProperty(i)) {
                 hasRegions = true;
-
                 break;
             }
+
         }
 
         if (!hasRegions) {
@@ -8625,9 +8637,11 @@ function config (name) {
         /* resolve desired timing for regions */
 
         for (var region_i in doc.head.layout.regions) {
-            if (doc.head.layout.regions.hasOwnProperty(region_i)) {
-                resolveTiming(doc, doc.head.layout.regions[region_i], null, null);
-            }
+
+            if (! doc.head.layout.regions.hasOwnProperty(region_i)) continue;
+
+            resolveTiming(doc, doc.head.layout.regions[region_i], null, null);
+
         }
 
         /* resolve desired timing for content elements */
@@ -8738,22 +8752,25 @@ function config (name) {
 
         var s = null;
 
-        for (var set_i in element.sets) {
-            if (element.sets.hasOwnProperty(set_i)) {
+        if ("sets" in element) {
+
+            for (var set_i = 0; set_i < element.sets.length; set_i++) {
                 resolveTiming(doc, element.sets[set_i], s, element);
 
                 if (element.timeContainer === "seq") {
-                    
+
                     implicit_end = element.sets[set_i].end;
-                    
+
                 } else {
-                    
+
                     implicit_end = Math.max(implicit_end, element.sets[set_i].end);
-                    
+
                 }
 
                 s = element.sets[set_i];
+
             }
+
         }
 
         if (!('contents' in element)) {
@@ -8774,24 +8791,22 @@ function config (name) {
 
             }
 
-        } else {
+        } else if ("contents" in element) {
+ 
+            for (var content_i = 0; content_i < element.contents.length; content_i++) {
+                resolveTiming(doc, element.contents[content_i], s, element);
 
-            for (var content_i in element.contents) {
-                if (element.contents.hasOwnProperty(content_i)) {
-                    resolveTiming(doc, element.contents[content_i], s, element);
+                if (element.timeContainer === "seq") {
 
-                    if (element.timeContainer === "seq") {
-                       
-                        implicit_end = element.contents[content_i].end;
-                       
-                    } else {
-                       
-                        implicit_end = Math.max(implicit_end, element.contents[content_i].end);
-                       
-                    }
-                    
-                    s = element.contents[content_i];
+                    implicit_end = element.contents[content_i].end;
+
+                } else {
+
+                    implicit_end = Math.max(implicit_end, element.contents[content_i].end);
+
                 }
+
+                s = element.contents[content_i];
             }
 
         }
@@ -9081,7 +9096,28 @@ function config (name) {
     }
 
     LayoutElement.prototype.initFromNode = function (doc, parent, node, errorHandler) {
-        this.regionID = elementGetRegionID(node);
+        var region = elementGetRegionID(node);
+        if (region) {
+            if (doc.head.layout.regions[region]) {
+                this.regionID = region;
+            } else {
+                var defaultRegion;
+                for (var r in doc.head.layout.regions) {
+                    if (doc.head.layout.regions.hasOwnProperty(r) && doc.head.layout.regions[r].isDefaultRegion) {
+                        defaultRegion = doc.head.layout.regions[r];
+                        break;
+                    }
+                }
+                if (!defaultRegion) {
+                    defaultRegion = Region.prototype.createDefaultRegion(doc, errorHandler);
+                    doc.head.layout.regions[defaultRegion.id] = defaultRegion;
+                }
+
+                reportError(errorHandler, "Cannot find specified region: " + region);
+
+                //Leave regionID unset to use this default region.
+            }
+        }
     };
 
     function StyledElement(styleAttrs) {
@@ -9304,6 +9340,7 @@ function config (name) {
 
         this.lang = doc.xmllang;
 
+        r.isDefaultRegion = true;
         return r;
     };
 
@@ -9343,17 +9380,17 @@ function config (name) {
         this.value = null;
 
         for (var qname in styles) {
-            if (styles.hasOwnProperty(qname)) {
-                if (this.qname) {
+            if (! styles.hasOwnProperty(qname)) continue;
 
-                    reportError(errorHandler, "More than one style specified on set");
-                    break;
+            if (this.qname) {
+                    
+                reportError(errorHandler, "More than one style specified on set");
+                break;
 
-                }
-
-                this.qname = qname;
-                this.value = styles[qname];
             }
+
+            this.qname = qname;
+            this.value = styles[qname];
         }
 
     };
@@ -9829,12 +9866,13 @@ function config (name) {
     function mergeStylesIfNotPresent(from_styles, into_styles) {
 
         for (var sname in from_styles) {
-            if (from_styles.hasOwnProperty(sname)) {
-                if (sname in into_styles)
-                    continue;
+            if (! from_styles.hasOwnProperty(sname)) continue;
 
-                into_styles[sname] = from_styles[sname];
-            }
+            if (sname in into_styles)
+                continue;
+
+            into_styles[sname] = from_styles[sname];
+
         }
 
     }
@@ -10098,10 +10136,14 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         element.appendChild(rootcontainer);
 
-        for (var i in isd.contents) {
-            if (isd.contents.hasOwnProperty(i)) {
+        if ("contents" in isd) {
+
+            for (var i = 0; i < isd.contents.length; i++) {
+
                 processElement(context, rootcontainer, isd.contents[i], isd);
+
             }
+
         }
 
         return context.currentISDState;
@@ -10271,17 +10313,16 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* tranform TTML styles to CSS styles */
 
-        for (var i in STYLING_MAP_DEFS) {
-            if (STYLING_MAP_DEFS.hasOwnProperty(i)) {
-                var sm = STYLING_MAP_DEFS[i];
+        for (var i = 0; i < STYLING_MAP_DEFS.length; i++) {
 
-                var attr = isd_element.styleAttrs[sm.qname];
+            var sm = STYLING_MAP_DEFS[i];
 
-                if (attr !== undefined && sm.map !== null) {
+            var attr = isd_element.styleAttrs[sm.qname];
 
-                    sm.map(context, e, isd_element, attr);
+            if (attr !== undefined && sm.map !== null) {
 
-                }
+                sm.map(context, e, isd_element, attr);
+
             }
 
         }
@@ -10391,7 +10432,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                     var cc = isd_element.text.charCodeAt(j);
 
-                    if (cc < 0xD800 || cc > 0xDBFF || j === isd_element.text.length-1) {
+                    if (cc < 0xD800 || cc > 0xDBFF || j === isd_element.text.length - 1) {
 
                         /* wrap the character(s) in a span unless it is a high surrogate */
 
@@ -10422,10 +10463,14 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* process the children of the ISD element */
 
-        for (var k in isd_element.contents) {
-            if (isd_element.contents.hasOwnProperty(k)) {
+        if ("contents" in isd_element) {
+
+            for (var k = 0; k < isd_element.contents.length; k++) {
+
                 processElement(context, proc_e, isd_element.contents[k], isd_element);
+
             }
+
         }
 
         /* list of lines */
@@ -10498,7 +10543,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                 var par_edges = rect2edges(proc_e.getBoundingClientRect(), context);
 
-                applyFillLineGap(linelist, par_edges.before, par_edges.after, context,proc_e);
+                applyFillLineGap(linelist, par_edges.before, par_edges.after, context, proc_e);
 
                 context.flg = null;
 
@@ -10555,15 +10600,20 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             var line = lineList[i];
 
             for (var j = 1; j < line.elements.length;) {
-                var previous = line.elements[j-1];
+
+                var previous = line.elements[j - 1];
                 var span = line.elements[j];
 
                 if (spanMerge(previous.node, span.node)) {
+
                     //removed from DOM by spanMerge(), remove from the list too.
                     line.elements.splice(j, 1);
                     continue;
+
                 } else {
+
                     j++;
+
                 }
 
             }
@@ -10622,7 +10672,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
     function spanMerge(first, second) {
 
-        if (first.tagName === "SPAN" && 
+        if (first.tagName === "SPAN" &&
             second.tagName === "SPAN" &&
             first._isd_element === second._isd_element) {
 
@@ -10641,6 +10691,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 }
 
                 second.parentElement.removeChild(second);
+
                 return true;
             }
 
@@ -10649,7 +10700,10 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
     function applyLinePadding(lineList, lp, context) {
 
-        for (var i=0;i<lineList.length;i++) {
+        if (lineList === null) return;
+
+        for (var i = 0; i < lineList.length; i++) {
+
             var l = lineList[i].elements.length;
 
             var pospadpxlen = Math.ceil(lp) + "px";
@@ -10665,7 +10719,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 if (se === ee) {
 
                     // Check to see if there's any background at all
-                    elementBoundingRect = se.node.getBoundingClientRect();
+                    var elementBoundingRect = se.node.getBoundingClientRect();
                     
                     if (elementBoundingRect.width == 0 || elementBoundingRect.height == 0) {
 
@@ -10697,8 +10751,8 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 // End element
                 if (context.ipd === "lr") {
 
-                    ee.node.style.paddingRight = pospadpxlen;
                     ee.node.style.marginRight = negpadpxlen;
+                    ee.node.style.paddingRight = pospadpxlen;
 
                 } else if (context.ipd === "rl") {
 
@@ -10894,7 +10948,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                     /* copy specified style properties from the sibling ruby container */
                     
-                    for(var k = 0; k < sib.style.length; k++) {
+                    for (var k = 0; k < sib.style.length; k++) {
 
                         ruby.style.setProperty(sib.style.item(k), sib.style.getPropertyValue(sib.style.item(k)));
 
@@ -10916,6 +10970,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     }
 
     function applyFillLineGap(lineList, par_before, par_after, context, element) {
+
         /* positive for BPD = lr and tb, negative for BPD = rl */
         var s = Math.sign(par_after - par_before);
 
@@ -10943,35 +10998,51 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             var l,thisNode;
 
             /* before line */
-
             if (i > 0) {
+
                 if (lineList[i-1]) {
-                    for (l=0;l<lineList[i-1].elements.length;l++) {
-                        thisNode = lineList[i-1].elements[l];
+
+                    for (l = 0; l < lineList[i - 1].elements.length; l++) {
+
+                        thisNode=lineList[i - 1].elements[l];
                         padding = s*(frontier-thisNode.after) + "px";
+
                         if (context.bpd === "lr") {
+
                             thisNode.node.style.paddingRight = padding;
+
                         } else if (context.bpd === "rl") {
+
                             thisNode.node.style.paddingLeft = padding;
+
                         } else if (context.bpd === "tb") {
+
                             thisNode.node.style.paddingBottom = padding;
+
                         }
                     }
                 }
             }
             /* after line */
-
             if (i < lineList.length) {
 
-                for (l=0;l<lineList[i].elements.length;l++) {
-                    thisNode=lineList[i].elements[l];
+                for (l = 0; l < lineList[i].elements.length; l++) {
+
+                    thisNode = lineList[i].elements[l];
                     padding = s * (thisNode.before - frontier) + "px";
+
                     if (context.bpd === "lr") {
+
                         thisNode.node.style.paddingLeft = padding;
+
                     } else if (context.bpd === "rl") {
+
                         thisNode.node.style.paddingRight = padding;
+
                     } else if (context.bpd === "tb") {
+
                         thisNode.node.style.paddingTop = padding;
+
                     }
                 }
             }
@@ -11354,62 +11425,66 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                         attr = context.options.fontFamily.split(",");
                     }
 
-                    for (var i in attr) {
-                        if (attr[i].hasOwnProperty(i)) {
-                            attr[i] = attr[i].trim();
+                    for (var i = 0; i < attr.length; i++) {
+                        attr[i] = attr[i].trim();
 
-                            if (attr[i] === "monospaceSerif") {
+                        if (attr[i] === "monospaceSerif") {
 
-                                rslt.push("Courier New");
-                                rslt.push('"Liberation Mono"');
-                                rslt.push("Courier");
-                                rslt.push("monospace");
+                            rslt.push("Courier New");
+                            rslt.push('"Liberation Mono"');
+                            rslt.push("Courier");
+                            rslt.push("monospace");
 
-                            } else if (attr[i] === "proportionalSansSerif" || attr[i] === "default") {
+                        } else if (attr[i] === "proportionalSansSerif" || attr[i] === "default") {
 
-                                rslt.push("Arial");
-                                rslt.push("Helvetica");
-                                rslt.push('"Liberation Sans"');
-                                rslt.push("sans-serif");
+                            rslt.push("Arial");
+                            rslt.push("Helvetica");
+                            rslt.push('"Liberation Sans"');
+                            rslt.push("sans-serif");
 
-                            } else if (attr[i] === "monospace") {
-                               
-                                rslt.push("monospace");
+                        } else if (attr[i] === "monospace") {
 
-                            } else if (attr[i] === "sansSerif") {
+                            rslt.push("monospace");
 
-                                rslt.push("sans-serif");
+                        } else if (attr[i] === "sansSerif") {
 
-                            } else if (attr[i] === "serif") {
+                            rslt.push("sans-serif");
 
-                                rslt.push("serif");
+                        } else if (attr[i] === "serif") {
 
-                            } else if (attr[i] === "monospaceSansSerif") {
+                            rslt.push("serif");
 
-                                rslt.push("Consolas");
-                                rslt.push("monospace");
+                        } else if (attr[i] === "monospaceSansSerif") {
 
-                            } else if (attr[i] === "proportionalSerif") {
+                            rslt.push("Consolas");
+                            rslt.push("monospace");
 
-                                rslt.push("serif");
+                        } else if (attr[i] === "proportionalSerif") {
 
-                            } else {
+                            rslt.push("serif");
 
-                                rslt.push(attr[i]);
+                        } else {
 
-                            }
+                            rslt.push(attr[i]);
 
                         }
+
                     }
 
                     // prune later duplicates we may have inserted 
                     if (rslt.length > 0) {
-                        var unique = [rslt[0]];
+
+                        var unique=[rslt[0]];
+
                         for (var fi = 1; fi < rslt.length; fi++) {
+
                             if (unique.indexOf(rslt[fi]) == -1) {
+
                                 unique.push(rslt[fi]);
+
                             }
                         }
+
                         rslt = unique;
                     }
 
@@ -11691,20 +11766,18 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
                         if (attr !== "none") {
 
-                            for (var i in attr) {
-                                if (attr.hasOwnProperty(i)) {
+                            for (var i = 0; i < attr.length; i++) {
 
-                                    s.push(attr[i].x_off.toUsedLength(context.w, context.h) + "px " +
-                                        attr[i].y_off.toUsedLength(context.w, context.h) + "px " +
-                                        attr[i].b_radius.toUsedLength(context.w, context.h) + "px " +
-                                        "rgba(" +
-                                        attr[i].color[0].toString() + "," +
-                                        attr[i].color[1].toString() + "," +
-                                        attr[i].color[2].toString() + "," +
-                                        (attr[i].color[3] / 255).toString() +
-                                        ")"
-                                        );
-                                }
+                                s.push(attr[i].x_off.toUsedLength(context.w, context.h) + "px " +
+                                    attr[i].y_off.toUsedLength(context.w, context.h) + "px " +
+                                    attr[i].b_radius.toUsedLength(context.w, context.h) + "px " +
+                                    "rgba(" +
+                                    attr[i].color[0].toString() + "," +
+                                    attr[i].color[1].toString() + "," +
+                                    attr[i].color[2].toString() + "," +
+                                    (attr[i].color[3] / 255).toString() +
+                                    ")"
+                                );
                             }
 
                         }
@@ -11823,10 +11896,10 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
     var STYLMAP_BY_QNAME = {};
 
-    for (var i in STYLING_MAP_DEFS) {
-        if (STYLING_MAP_DEFS.hasOwnProperty(i)) {
-            STYLMAP_BY_QNAME[STYLING_MAP_DEFS[i].qname] = STYLING_MAP_DEFS[i];
-        }
+    for (var i = 0; i < STYLING_MAP_DEFS.length; i++) {
+
+        STYLMAP_BY_QNAME[STYLING_MAP_DEFS[i].qname] = STYLING_MAP_DEFS[i];
+
     }
 
     /* CSS property names */
@@ -11977,7 +12050,6 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         } else {
             body = null;
         }
-
         /* rewritten TTML will always have a default - this covers it. because the region is defaulted to "" */
         if (activeRegions[""] !== undefined) {
             activeRegions[""] = true;
@@ -11991,9 +12063,6 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 var c = isdProcessContentElement(tt, offset, tt.head.layout.regions[regionID], body, null, '', tt.head.layout.regions[regionID], errorHandler, context);
 
                 if (c !== null) {
-
-                    /* add the region to the ISD */
-
                     isd.contents.push(c.element);
                 }
             }
@@ -12053,12 +12122,13 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* apply set (animation) styling */
 
-        for (var i in elem.sets) {
-            if (elem.sets.hasOwnProperty(i)) {
+        if ("sets" in elem) {
+            for (var i = 0; i < elem.sets.length; i++) {
                 if (offset < elem.sets[i].begin || offset >= elem.sets[i].end)
                     continue;
 
                 isd_element.styleAttrs[elem.sets[i].qname] = elem.sets[i].value;
+
             }
         }
 
@@ -12070,128 +12140,126 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         var spec_attr = {};
 
         for (var qname in isd_element.styleAttrs) {
-            if (isd_element.styleAttrs.hasOwnProperty(qname)) {
-                spec_attr[qname] = true;
+            if (! isd_element.styleAttrs.hasOwnProperty(qname)) continue;
 
-                /* special rule for tts:writingMode (section 7.29.1 of XSL)
-                 * direction is set consistently with writingMode only
-                 * if writingMode sets inline-direction to LTR or RTL  
-                 */
+            spec_attr[qname] = true;
 
-                if (isd_element.kind === 'region' &&
-                    qname === imscStyles.byName.writingMode.qname &&
-                    !(imscStyles.byName.direction.qname in isd_element.styleAttrs)) {
+            /* special rule for tts:writingMode (section 7.29.1 of XSL)
+             * direction is set consistently with writingMode only
+             * if writingMode sets inline-direction to LTR or RTL  
+             */
 
-                    var wm = isd_element.styleAttrs[qname];
+            if (isd_element.kind === 'region' &&
+                qname === imscStyles.byName.writingMode.qname &&
+                !(imscStyles.byName.direction.qname in isd_element.styleAttrs)) {
 
-                    if (wm === "lrtb" || wm === "lr") {
+                var wm = isd_element.styleAttrs[qname];
 
-                        isd_element.styleAttrs[imscStyles.byName.direction.qname] = "ltr";
+                if (wm === "lrtb" || wm === "lr") {
 
-                    } else if (wm === "rltb" || wm === "rl") {
+                    isd_element.styleAttrs[imscStyles.byName.direction.qname] = "ltr";
 
-                        isd_element.styleAttrs[imscStyles.byName.direction.qname] = "rtl";
-                    }
+                } else if (wm === "rltb" || wm === "rl") {
+
+                    isd_element.styleAttrs[imscStyles.byName.direction.qname] = "rtl";
                 }
-
             }
+
         }
 
         /* inherited styling */
 
         if (parent !== null) {
 
-            for (var j in imscStyles.all) {
-                if (imscStyles.all.hasOwnProperty(j)) {
-                    var sa = imscStyles.all[j];
+            for (var j = 0; j < imscStyles.all.length; j++) {
+                var sa = imscStyles.all[j];
 
-                    /* textDecoration has special inheritance rules */
+                /* textDecoration has special inheritance rules */
 
-                    if (sa.qname === imscStyles.byName.textDecoration.qname) {
+                if (sa.qname === imscStyles.byName.textDecoration.qname) {
 
-                        /* handle both textDecoration inheritance and specification */
+                    /* handle both textDecoration inheritance and specification */
 
-                        var ps = parent.styleAttrs[sa.qname];
-                        var es = isd_element.styleAttrs[sa.qname];
-                        var outs = [];
+                    var ps = parent.styleAttrs[sa.qname];
+                    var es = isd_element.styleAttrs[sa.qname];
+                    var outs = [];
 
-                        if (es === undefined) {
+                    if (es === undefined) {
 
-                            outs = ps;
+                        outs = ps;
 
-                        } else if (es.indexOf("none") === -1) {
+                    } else if (es.indexOf("none") === -1) {
 
-                            if ((es.indexOf("noUnderline") === -1 &&
-                                 ps.indexOf("underline") !== -1) ||
-                                es.indexOf("underline") !== -1) {
+                        if ((es.indexOf("noUnderline") === -1 &&
+                            ps.indexOf("underline") !== -1) ||
+                            es.indexOf("underline") !== -1) {
 
-                                outs.push("underline");
-
-                            }
-
-                            if ((es.indexOf("noLineThrough") === -1 &&
-                                 ps.indexOf("lineThrough") !== -1) ||
-                                es.indexOf("lineThrough") !== -1) {
-
-                                outs.push("lineThrough");
-
-                            }
-
-                            if ((es.indexOf("noOverline") === -1 &&
-                                 ps.indexOf("overline") !== -1) ||
-                                es.indexOf("overline") !== -1) {
-
-                                outs.push("overline");
-
-                            }
-
-                        } else {
-
-                            outs.push("none");
+                            outs.push("underline");
 
                         }
 
-                        isd_element.styleAttrs[sa.qname] = outs;
+                        if ((es.indexOf("noLineThrough") === -1 &&
+                            ps.indexOf("lineThrough") !== -1) ||
+                            es.indexOf("lineThrough") !== -1) {
 
-                    } else if (sa.qname === imscStyles.byName.fontSize.qname &&
-                               !(sa.qname in isd_element.styleAttrs) &&
-                               isd_element.kind === 'span' &&
-                               isd_element.styleAttrs[imscStyles.byName.ruby.qname] === "textContainer") {
-                    
-                        /* special inheritance rule for ruby text container font size */
-                    
-                        var ruby_fs = parent.styleAttrs[imscStyles.byName.fontSize.qname];
+                            outs.push("lineThrough");
 
-                        isd_element.styleAttrs[sa.qname] = new imscUtils.ComputedLength(
+                        }
+
+                        if ((es.indexOf("noOverline") === -1 &&
+                            ps.indexOf("overline") !== -1) ||
+                            es.indexOf("overline") !== -1) {
+
+                            outs.push("overline");
+
+                        }
+
+                    } else {
+
+                        outs.push("none");
+
+                    }
+
+                    isd_element.styleAttrs[sa.qname] = outs;
+
+                } else if (sa.qname === imscStyles.byName.fontSize.qname &&
+                    !(sa.qname in isd_element.styleAttrs) &&
+                    isd_element.kind === 'span' &&
+                    isd_element.styleAttrs[imscStyles.byName.ruby.qname] === "textContainer") {
+
+                    /* special inheritance rule for ruby text container font size */
+
+                    var ruby_fs = parent.styleAttrs[imscStyles.byName.fontSize.qname];
+
+                    isd_element.styleAttrs[sa.qname] = new imscUtils.ComputedLength(
                         0.5 * ruby_fs.rw,
                         0.5 * ruby_fs.rh);
 
-                    } else if (sa.qname === imscStyles.byName.fontSize.qname &&
-                               !(sa.qname in isd_element.styleAttrs) &&
-                               isd_element.kind === 'span' &&
-                               isd_element.styleAttrs[imscStyles.byName.ruby.qname] === "text") {
-                    
-                        /* special inheritance rule for ruby text font size */
-                    
-                        var parent_fs = parent.styleAttrs[imscStyles.byName.fontSize.qname];
-                    
-                        if (parent.styleAttrs[imscStyles.byName.ruby.qname] === "textContainer") {
-                        
-                            isd_element.styleAttrs[sa.qname] = parent_fs;
-                        
-                        } else {
-                        
-                            isd_element.styleAttrs[sa.qname] = new imscUtils.ComputedLength(
+                } else if (sa.qname === imscStyles.byName.fontSize.qname &&
+                    !(sa.qname in isd_element.styleAttrs) &&
+                    isd_element.kind === 'span' &&
+                    isd_element.styleAttrs[imscStyles.byName.ruby.qname] === "text") {
+
+                    /* special inheritance rule for ruby text font size */
+
+                    var parent_fs = parent.styleAttrs[imscStyles.byName.fontSize.qname];
+
+                    if (parent.styleAttrs[imscStyles.byName.ruby.qname] === "textContainer") {
+
+                        isd_element.styleAttrs[sa.qname] = parent_fs;
+
+                    } else {
+
+                        isd_element.styleAttrs[sa.qname] = new imscUtils.ComputedLength(
                             0.5 * parent_fs.rw,
                             0.5 * parent_fs.rh);
-                        }
-                    
-                    } else if (sa.inherit &&
-                               (sa.qname in parent.styleAttrs) &&
-                               !(sa.qname in isd_element.styleAttrs)) {
-
-                        isd_element.styleAttrs[sa.qname] = parent.styleAttrs[sa.qname];
                     }
+
+                } else if (sa.inherit &&
+                    (sa.qname in parent.styleAttrs) &&
+                    !(sa.qname in isd_element.styleAttrs)) {
+
+                    isd_element.styleAttrs[sa.qname] = parent.styleAttrs[sa.qname];
                 }
 
             }
@@ -12200,55 +12268,52 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* initial value styling */
 
-        for (var k in imscStyles.all) {
-            if (imscStyles.all.hasOwnProperty(k)) {
-                var ivs = imscStyles.all[k];
-
-                /* skip if value is already specified */
-
-                if (ivs.qname in isd_element.styleAttrs) continue;
-
-                /* skip tts:position if tts:origin is specified */
-
-                if (ivs.qname === imscStyles.byName.position.qname &&
-                    imscStyles.byName.origin.qname in isd_element.styleAttrs)
-                    continue;
-
-                /* skip tts:origin if tts:position is specified */
-
-                if (ivs.qname === imscStyles.byName.origin.qname &&
-                    imscStyles.byName.position.qname in isd_element.styleAttrs)
-                    continue;
+        for (var k = 0; k < imscStyles.all.length; k++) {
             
-                /* determine initial value */
-            
-                var iv = doc.head.styling.initials[ivs.qname] || ivs.initial;
+            var ivs = imscStyles.all[k];
 
-                if (iv === null) {
-                    /* skip processing if no initial value defined */
+            if (ivs.qname in isd_element.styleAttrs) continue;
 
-                    continue;
-                }
+            /* skip tts:position if tts:origin is specified */
 
-                /* apply initial value to elements other than region only if non-inherited */
+            if (ivs.qname === imscStyles.byName.position.qname &&
+                imscStyles.byName.origin.qname in isd_element.styleAttrs)
+                continue;
 
-                if (isd_element.kind === 'region' || (ivs.inherit === false && iv !== null)) {
+            /* skip tts:origin if tts:position is specified */
 
-                    var piv = ivs.parse(iv);
+            if (ivs.qname === imscStyles.byName.origin.qname &&
+                imscStyles.byName.position.qname in isd_element.styleAttrs)
+                continue;
 
-                    if (piv !== null) {
+            /* determine initial value */
 
-                        isd_element.styleAttrs[ivs.qname] = piv;
+            var iv = doc.head.styling.initials[ivs.qname] || ivs.initial;
 
-                        /* keep track of the style as specified */
+            if (iv === null) {
+                /* skip processing if no initial value defined */
 
-                        spec_attr[ivs.qname] = true;
+                continue;
+            }
 
-                    } else {
+            /* apply initial value to elements other than region only if non-inherited */
 
-                        reportError(errorHandler, "Invalid initial value for '" + ivs.qname + "' on element '" + isd_element.kind);
+            if (isd_element.kind === 'region' || (ivs.inherit === false && iv !== null)) {
 
-                    }
+                var piv = ivs.parse(iv);
+
+                if (piv !== null) {
+
+                    isd_element.styleAttrs[ivs.qname] = piv;
+
+                    /* keep track of the style as specified */
+
+                    spec_attr[ivs.qname] = true;
+
+                } else {
+
+                    reportError(errorHandler, "Invalid initial value for '" + ivs.qname + "' on element '" + isd_element.kind);
+
                 }
             }
 
@@ -12257,41 +12322,40 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         /* compute styles (only for non-inherited styles) */
         /* TODO: get rid of spec_attr */
 
-        for (var z in imscStyles.all) {
-            if (imscStyles.all.hasOwnProperty(z)) {
-                var cs = imscStyles.all[z];
+        for (var z = 0; z < imscStyles.all.length; z++) {
+            
+            var cs = imscStyles.all[z];
 
-                if (!(cs.qname in spec_attr)) continue;
+            if (!(cs.qname in spec_attr)) continue;
 
-                if (cs.compute !== null) {
+            if (cs.compute !== null) {
 
-                    var cstyle = cs.compute(
-                      /*doc, parent, element, attr, context*/
-                      doc,
-                      parent,
-                      isd_element,
-                      isd_element.styleAttrs[cs.qname],
-                      context
+                var cstyle = cs.compute(
+                    /*doc, parent, element, attr, context*/
+                    doc,
+                    parent,
+                    isd_element,
+                    isd_element.styleAttrs[cs.qname],
+                    context
+                );
+
+                if (cstyle !== null) {
+
+                    isd_element.styleAttrs[cs.qname] = cstyle;
+
+                } else {
+                    /* if the style cannot be computed, replace it by its initial value */
+
+                    isd_element.styleAttrs[cs.qname] = cs.compute(
+                        /*doc, parent, element, attr, context*/
+                        doc,
+                        parent,
+                        isd_element,
+                        cs.parse(cs.initial),
+                        context
                     );
 
-                    if (cstyle !== null) {
-
-                        isd_element.styleAttrs[cs.qname] = cstyle;
-                    
-                    } else {
-                        /* if the style cannot be computed, replace it by its initial value */
-
-                        isd_element.styleAttrs[cs.qname] = cs.compute(
-                          /*doc, parent, element, attr, context*/
-                          doc,
-                          parent,
-                          isd_element,
-                          cs.parse(cs.initial),
-                          context
-                        );
-
-                        reportError(errorHandler, "Style '" + cs.qname + "' on element '" + isd_element.kind + "' cannot be computed");
-                    }
+                    reportError(errorHandler, "Style '" + cs.qname + "' on element '" + isd_element.kind + "' cannot be computed");
                 }
             }
 
@@ -12304,7 +12368,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* process contents of the element */
 
-        var contents;
+        var contents = null;
 
         if (parent === null) {
 
@@ -12329,19 +12393,17 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         }
 
-        for (var x in contents) {
-            if (contents.hasOwnProperty(x)) {
-                var c = isdProcessContentElement(doc, offset, region, body, isd_element, associated_region_id, contents[x], errorHandler, context);
+        for (var x = 0; contents !== null && x < contents.length; x++) {
+            var c = isdProcessContentElement(doc, offset, region, body, isd_element, associated_region_id, contents[x], errorHandler, context);
 
-                /* 
-                 * keep child element only if they are non-null and their region match 
-                 * the region of this element
-                 */
+            /* 
+             * keep child element only if they are non-null and their region match 
+             * the region of this element
+             */
 
-                if (c !== null) {
+            if (c !== null) {
 
-                    isd_element.contents.push(c.element);
-                }
+                isd_element.contents.push(c.element);
             }
 
         }
@@ -12349,50 +12411,53 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         /* remove styles that are not applicable */
 
         for (var qnameb in isd_element.styleAttrs) {
-            if (isd_element.styleAttrs.hasOwnProperty(qnameb)) {
-                /* true if not applicable */
+            if (!isd_element.styleAttrs.hasOwnProperty(qnameb)) continue;
 
-                var na = false;
+            var na = false;
 
-                /* special applicability of certain style properties to ruby container spans */
-                /* TODO: in the future ruby elements should be translated to elements instead of kept as spans */
+            /* special applicability of certain style properties to ruby container spans */
+            /* TODO: in the future ruby elements should be translated to elements instead of kept as spans */
 
-                if (isd_element.kind === 'span') {
+            if (isd_element.kind === 'span') {
 
-                    var rsp = isd_element.styleAttrs[imscStyles.byName.ruby.qname];
+                var rsp = isd_element.styleAttrs[imscStyles.byName.ruby.qname];
 
-                    na = ( rsp === 'container' || rsp === 'textContainer' || rsp === 'baseContainer' ) && 
-                        _rcs_na_styles.indexOf(qnameb) !== -1;
+                na = ( rsp === 'container' || rsp === 'textContainer' || rsp === 'baseContainer' ) && 
+                    _rcs_na_styles.indexOf(qnameb) !== -1;
 
-                    if (! na) {
+                if (! na) {
 
-                        na = rsp !== 'container' &&
-                            qnameb === imscStyles.byName.rubyAlign.qname;
-
-                    }
-
-                    if (! na) {
-
-                        na =  (! (rsp === 'textContainer' || rsp === 'text')) &&
-                            qnameb === imscStyles.byName.rubyPosition.qname;
-
-                    }
+                    na = rsp !== 'container' &&
+                        qnameb === imscStyles.byName.rubyAlign.qname;
 
                 }
 
-                /* normal applicability */
-            
                 if (! na) {
 
-                    var da = imscStyles.byQName[qnameb];
+                    na =  (! (rsp === 'textContainer' || rsp === 'text')) &&
+                        qnameb === imscStyles.byName.rubyPosition.qname;
+
+                }
+
+            }
+
+            /* normal applicability */
+
+            if (! na) {
+
+                var da = imscStyles.byQName[qnameb];
+
+                if ("applies" in da){
+
                     na = da.applies.indexOf(isd_element.kind) === -1;
 
                 }
 
+            }
 
-                if (na) {
-                    delete isd_element.styleAttrs[qnameb];
-                }
+
+            if (na) {
+                delete isd_element.styleAttrs[qnameb];
             }
         }
 
@@ -12454,7 +12519,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         var element;
 
-        for(var i = 0; i < elist.length;) {
+        for (var i = 0; i < elist.length;) {
 
             element = elist[i];
 
@@ -12485,7 +12550,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
 
         /* remove trailing LWSPs */
 
-        for(i = 0; i < elist.length; i++) {
+        for (i = 0; i < elist.length; i++) {
 
             element = elist[i];
 
@@ -12507,28 +12572,29 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
     }
 
     function constructSpanList(element, elist) {
+        if (! ("contents" in element)) {
+            return;
+        }
 
-        for (var i in element.contents) {
-            if (element.contents.hasOwnProperty(i)) {
-                var child = element.contents[i];
-                var ruby = child.styleAttrs[imscStyles.byName.ruby.qname];
+        for (var i = 0; i < element.contents.length; i++) {
+            var child = element.contents[i];
+            var ruby = child.styleAttrs[imscStyles.byName.ruby.qname];
 
-                if (child.kind === 'span' && (ruby === "textContainer" || ruby === "text")) {
+            if (child.kind === 'span' && (ruby === "textContainer" || ruby === "text")) {
 
-                    /* skip ruby text and text containers, which are handled on their own */
-            
-                    continue;
+                /* skip ruby text and text containers, which are handled on their own */
 
-                } else if ('contents' in child) {
-    
-                    constructSpanList(child, elist);
-    
-                } else if ((child.kind === 'span' && child.text.length !== 0) || child.kind === 'br') {
+                continue;
 
-                    /* skip empty spans */
+            } else if ('contents' in child) {
 
-                    elist.push(child);
-                }
+                constructSpanList(child, elist);
+
+            } else if ((child.kind === 'span' && child.text.length !== 0) || child.kind === 'br') {
+
+                /* skip empty spans */
+
+                elist.push(child);
             }
 
         }
@@ -12588,10 +12654,9 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
         this.styleAttrs = {};
 
         for (var sname in ttelem.styleAttrs) {
-            if (ttelem.styleAttrs.hasOwnProperty(sname)) {
-                this.styleAttrs[sname] =
-                    ttelem.styleAttrs[sname];
-            }
+            if (! ttelem.styleAttrs.hasOwnProperty(sname)) continue;
+
+            this.styleAttrs[sname] = ttelem.styleAttrs[sname];
         }
         
         /* copy src and type if image */
@@ -12949,7 +13014,7 @@ exports.renderHTML = require('./html').render;
                 var ffs = str.split(",");
                 var rslt = [];
 
-                for (var i=0;i<ffs.length;i++) {
+                for (var i = 0; i < ffs.length; i++) {
 
                     if (ffs[i].charAt(0) !== "'" && ffs[i].charAt(0) !== '"') {
 
@@ -13217,7 +13282,8 @@ exports.renderHTML = require('./html').render;
                 if (s.length > 4)
                     return null;
                 var r = [];
-                for (var i=0;i<s.length;i++) {
+                for (var i = 0; i < s.length; i++) {
+
                     var l = imscUtils.parseLength(s[i]);
                     if (!l)
                         return null;
@@ -13294,7 +13360,7 @@ exports.renderHTML = require('./html').render;
 
                 var out = [];
 
-                for (var i=0;i<padding.length;i++) {
+                for (var i = 0 ; i < padding.length; i++) {
 
                     if (padding[i].value === 0) {
 
@@ -13306,9 +13372,9 @@ exports.renderHTML = require('./html').render;
                             padding[i].value,
                             padding[i].unit,
                             element.styleAttrs[imscStyles.byName.fontSize.qname],
-                            i === "0" || i === "2" ? element.styleAttrs[imscStyles.byName.extent.qname].h : element.styleAttrs[imscStyles.byName.extent.qname].w,
-                            i === "0" || i === "2" ? doc.cellLength.h : doc.cellLength.w,
-                            i === "0" || i === "2" ? doc.pxLength.h: doc.pxLength.w
+                            i === 0 || i === 2 ? element.styleAttrs[imscStyles.byName.extent.qname].h : element.styleAttrs[imscStyles.byName.extent.qname].w,
+                            i === 0 || i === 2 ? doc.cellLength.h : doc.cellLength.w,
+                            i === 0 || i === 2 ? doc.pxLength.h: doc.pxLength.w
                             );
 
                         if (out[i] === null) return null;
@@ -13590,7 +13656,7 @@ exports.renderHTML = require('./html').render;
 
                 var rslt = {style: null, symbol: null, color: null, position: null};
 
-                for (var i=0;i<e.length;i++) {
+                for (var i = 0; i < e.length; i++) {
 
                     if (e[i] === "none" || e[i] === "auto") {
 
@@ -13745,66 +13811,65 @@ exports.renderHTML = require('./html').render;
 
                 var r = [];
 
-                for (var i in attr) {
-                    if (i.hasOwnProperty(attr)) {
-                        var shadow = {};
+                for (var i = 0; i < attr.length; i++) {
 
-                        shadow.x_off = imscUtils.toComputedLength(
-                          attr[i][0].value,
-                          attr[i][0].unit,
-                          null,
-                          element.styleAttrs[imscStyles.byName.fontSize.qname],
-                          null,
-                          doc.pxLength.w
+                    var shadow = {};
+
+                    shadow.x_off = imscUtils.toComputedLength(
+                        attr[i][0].value,
+                        attr[i][0].unit,
+                        null,
+                        element.styleAttrs[imscStyles.byName.fontSize.qname],
+                        null,
+                        doc.pxLength.w
+                    );
+
+                    if (shadow.x_off === null)
+                        return null;
+
+                    shadow.y_off = imscUtils.toComputedLength(
+                        attr[i][1].value,
+                        attr[i][1].unit,
+                        null,
+                        element.styleAttrs[imscStyles.byName.fontSize.qname],
+                        null,
+                        doc.pxLength.h
+                    );
+
+                    if (shadow.y_off === null)
+                        return null;
+
+                    if (attr[i][2] === null) {
+
+                        shadow.b_radius = 0;
+
+                    } else {
+
+                        shadow.b_radius = imscUtils.toComputedLength(
+                            attr[i][2].value,
+                            attr[i][2].unit,
+                            null,
+                            element.styleAttrs[imscStyles.byName.fontSize.qname],
+                            null,
+                            doc.pxLength.h
                         );
 
-                        if (shadow.x_off === null)
+                        if (shadow.b_radius === null)
                             return null;
 
-                        shadow.y_off = imscUtils.toComputedLength(
-                           attr[i][1].value,
-                           attr[i][1].unit,
-                           null,
-                           element.styleAttrs[imscStyles.byName.fontSize.qname],
-                           null,
-                           doc.pxLength.h
-                        );
-
-                        if (shadow.y_off === null)
-                            return null;
-
-                        if (attr[i][2] === null) {
-
-                            shadow.b_radius = 0;
-
-                        } else {
-
-                            shadow.b_radius = imscUtils.toComputedLength(
-                               attr[i][2].value,
-                               attr[i][2].unit,
-                               null,
-                               element.styleAttrs[imscStyles.byName.fontSize.qname],
-                               null,
-                               doc.pxLength.h
-                            );
-
-                            if (shadow.b_radius === null)
-                                return null;
-
-                        }
-
-                        if (attr[i][3] === null) {
-
-                            shadow.color = element.styleAttrs[imscStyles.byName.color.qname];
-
-                        } else {
-
-                            shadow.color = attr[i][3];
-
-                        }
-
-                        r.push(shadow);
                     }
+
+                    if (attr[i][3] === null) {
+
+                        shadow.color = element.styleAttrs[imscStyles.byName.color.qname];
+
+                    } else {
+
+                        shadow.color = attr[i][3];
+
+                    }
+
+                    r.push(shadow);
                 }
 
                 return r;
@@ -14110,11 +14175,11 @@ exports.renderHTML = require('./html').render;
 
     imscUtils.parseTextShadow = function (str) {
 
-        var shadows = str.split(",");
-
+        var shadows = str.match(/([^\(,\)]|\([^\)]+\))+/g);
+        
         var r = [];
 
-        for (var i=0;i<shadows.length;i++) {
+        for (var i = 0; i < shadows.length; i++) {
 
             var shadow = shadows[i].split(" ");
 
@@ -14206,19 +14271,17 @@ exports.renderHTML = require('./html').render;
 
         /* initial clean-up pass */
 
-        for (var j in s) {
-            if (s.hasOwnProperty(j)) {
-                if (!isKeyword(s[j])) {
+        for (var j = 0 ; j < s.length; j++) {
 
-                    var l = imscUtils.parseLength(s[j]);
+            if (!isKeyword(s[j])) {
 
-                    if (l === null)
-                        return null;
+                var l = imscUtils.parseLength(s[j]);
 
-                    s[j] = l;
-                }
+                if (l === null)
+                    return null;
+
+                s[j] = l;
             }
-
         }
 
         /* position default */
