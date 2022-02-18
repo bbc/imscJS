@@ -10355,7 +10355,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                     proc_e.style.paddingBottom = padmeasure;
 
                 }
-                context.removePaddingElement=proc_e;
+
                 context.lp = lp;
             }
         }
@@ -10530,15 +10530,6 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
             if (context.lp) {
 
                 applyLinePadding(linelist, context.lp.multiply(context.lp.toUsedLength(context.w, context.h), context.options.sizeAdjust), context);
-
-                if (context.bpd === "tb") {
-                    // should this actually be remove?
-                    context.removePaddingElement.style.paddingLeft=0;
-                    context.removePaddingElement.style.paddingRight=0;
-                } else {
-                    context.removePaddingElement.style.paddingTop=0;
-                    context.removePaddingElement.style.paddingBottom=0;
-                }
 
                 context.lp = null;
 
@@ -10728,7 +10719,7 @@ var backgroundColorAdjustSuffix = "BackgroundColorAdjust";
                 if (se === ee) {
 
                     // Check to see if there's any background at all
-                    elementBoundingRect = se.node.getBoundingClientRect();
+                    var elementBoundingRect = se.node.getBoundingClientRect();
                     
                     if (elementBoundingRect.width == 0 || elementBoundingRect.height == 0) {
 
