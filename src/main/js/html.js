@@ -64,7 +64,7 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
      * <pre>lineHeightAdjust: {number}</pre> scales the line height
      * <pre>backgroundOpacityScale: {number}</pre> scales the backgroundColor opacity
      * <pre>fontFamily: {string}</pre> comma-separated list of font family values to use, if present.
-     * <pre>colorAdjust: {documentColor: replaceColor*}</pre> map of document colors and the value with which to replace them
+     * <pre>colorAdjust: [{colorSelector: selector, ColorGenerator: generator}*]</pre> list of color replacement rules
      * <pre>colorOpacityScale: {number}</pre> opacity override on text color (ignored if zero)
      * <pre>regionOpacityScale: {number}</pre> scales the region opacity
      * <pre>textOutline: {string}</pre> textOutline value to use, if present
@@ -154,21 +154,6 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
             options: Object.assign({}, options) || {}, /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#deep_clone : */
             /* this isn't a get-out-of-jail for avoiding mutation of the incoming options if we ever put an object reference into options */
         };
-
-        /* canonicalise and copy colour adjustment maps */
-        if (context.options.colorAdjust)
-            context.options.colorAdjust = preprocessColorMapOptions(context.options.colorAdjust);
-        
-        var bgcColorElements = ['region', 'body', 'div', 'p', 'span'];
-        var propName;
-        for (var bgcei in bgcColorElements) {
-            if (bgcColorElements.hasOwnProperty(bgcei)) {
-                propName = bgcColorElements[bgcei] + backgroundColorAdjustSuffix;
-                if (context.options[propName]) {
-                    context.options[propName] = preprocessColorMapOptions(context.options[propName]);
-                }
-            }
-        }
 
         element.appendChild(rootcontainer);
 
@@ -1338,7 +1323,9 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
                     var backgroundColorAdjustMap =
                         context.options[isd_element.kind + backgroundColorAdjustSuffix];
                     
-                    var map_attr = backgroundColorAdjustMap && backgroundColorAdjustMap[attr.toString()];
+                    var map_attr = backgroundColorAdjustMap && 
+                        // backgroundColorAdjustMap[attr.toString()];
+                        imscUtils.customizeColor(attr.toString(), backgroundColorAdjustMap);
                     if (map_attr)
                         attr = map_attr;
 
@@ -1373,7 +1360,8 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
 
                     var colorAdjustMap = context.options.colorAdjust;
                     if (colorAdjustMap != undefined) {
-                        var map_attr = colorAdjustMap[attr.toString()];
+                        // var map_attr = colorAdjustMap[attr.toString()];
+                        var map_attr = imscUtils.customizeColor(attr, colorAdjustMap);
                         if (map_attr)
                             attr = map_attr;
                     }

@@ -117,6 +117,58 @@
         return r;
     };
 
+    imscUtils.customizeColor = function (inputColor, colorAdjustRules) {
+        var outputColor = inputColor;
+
+        for (var r = 0; r < colorAdjustRules.length; r++) {
+            var colorAdjustRule = colorAdjustRules[r];
+            var matchResult = imscUtils.colorMatchesSelector(inputColor, colorAdjustRule.colorSelector);
+            if (matchResult.matches) {
+                outputColor = imscUtils.generateAdjustedColor(matchResult, colorAdjustRule.colorGenerator);
+                break;
+            }
+        }
+
+        return outputColor;
+    };
+
+    imscUtils.arraysEqual = function (a1, a2) {
+        rv = a1.length == a2.length;
+        if (rv) {
+            for (i = 0; (i < a1.length) && rv; i++) {
+                rv = (a1[i] === a2[i]);
+            }
+        };
+        return rv;
+    };
+
+    imscUtils.colorMatchesSelector = function (inputColor, colorSelector) {
+        var rv = {
+            matches: false,
+            color: inputColor,
+        };
+
+        var parsedColorSelector = imscUtils.parseColor(colorSelector);
+        if (colorSelector === "*")
+        {
+            rv.matches = true;
+        } else if ( parsedColorSelector ) {
+            rv.matches = imscUtils.arraysEqual(inputColor, parsedColorSelector);
+        };
+
+        return rv;
+    };
+
+    imscUtils.generateAdjustedColor = function (matchResult, colorGenerator) {
+        var generatedColor = matchResult.color;
+
+        if (colorGenerator.hasOwnProperty("exactColor")) {
+            generatedColor = imscUtils.parseColor(colorGenerator.exactColor);
+        };
+
+        return generatedColor;
+    };
+
     var LENGTH_RE = /^((?:\+|\-)?\d*(?:\.\d+)?)(px|em|c|%|rh|rw)$/;
 
     imscUtils.parseLength = function (str) {
