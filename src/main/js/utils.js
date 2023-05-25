@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+var tinycolor = require("tinycolor2");
+
 /**
  * @module imscUtils
  */
@@ -117,6 +119,22 @@
         return r;
     };
 
+    imscUtils.toTinycolor = function ( ic ) {
+        return tinycolor(
+            {
+                r: ic[0],
+                g: ic[1],
+                b: ic[2],
+                a: ic[3] / 255
+            }
+        );
+    };
+
+    imscUtils.fromTinycolor = function ( tc ) {
+        rgb = tc.toRgb();
+        return [ rgb.r, rgb.g, rgb.b, rgb.a * 255 ];
+    };
+
     imscUtils.customizeColor = function (inputColor, colorAdjustRules) {
         var outputColor = inputColor;
 
@@ -164,6 +182,9 @@
 
         if (colorGenerator.hasOwnProperty("exactColor")) {
             generatedColor = imscUtils.parseColor(colorGenerator.exactColor);
+        } else if (colorGenerator.hasOwnProperty("desaturate")) {
+            desaturatedColor = imscUtils.toTinycolor(generatedColor).desaturate(colorGenerator.desaturate);
+            generatedColor = imscUtils.fromTinycolor(desaturatedColor);
         };
 
         return generatedColor;

@@ -34,7 +34,8 @@
         "postversion": "git push --tags"
     },
     "dependencies": {
-        "sax": "1.2.4"
+        "sax": "1.2.4",
+        "tinycolor2": "^1.6.0"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^17.0.0",
