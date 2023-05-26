@@ -185,8 +185,13 @@ var tinycolor = require("tinycolor2");
         } else if (colorGenerator.hasOwnProperty("desaturate")) {
             desaturatedColor = imscUtils.toTinycolor(generatedColor).desaturate(colorGenerator.desaturate);
             generatedColor = imscUtils.fromTinycolor(desaturatedColor);
+        } else if (colorGenerator.hasOwnProperty("darken")) {
+            darkenedColor = imscUtils.toTinycolor(generatedColor).darken(colorGenerator.darken);
+            generatedColor = imscUtils.fromTinycolor(darkenedColor);
+        } else if (colorGenerator.hasOwnProperty("spin")) {
+            spinnedColor = imscUtils.toTinycolor(generatedColor).spin(colorGenerator.spin);
+            generatedColor = imscUtils.fromTinycolor(spinnedColor);
         };
-
         return generatedColor;
     };
 
