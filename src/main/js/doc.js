@@ -29,7 +29,7 @@
  */
 
 ;
-(function (imscDoc, sax, imscNames, imscStyles, imscUtils) {
+(function (imscDoc, saxes, imscNames, imscStyles, imscUtils) {
 
 
     /**
@@ -74,14 +74,18 @@
      */
 
     imscDoc.fromXML = function (xmlstring, errorHandler, metadataHandler) {
-        var p = sax.parser(true, {xmlns: true});
+        var p = new saxes.SaxesParser({xmlns: true});
         var estack = [];
         var xmllangstack = [];
         var xmlspacestack = [];
         var metadata_depth = 0;
         var doc = null;
 
-        p.onclosetag = function (node) {
+        p.on('error', function (error) {
+            console.log(error);
+        });
+
+        p.on('closetag', function (node) {
 
             
             if (estack[0] instanceof Region) {
@@ -178,9 +182,9 @@
             // prepare for the next element
 
             estack.shift();
-        };
+        });
 
-        p.ontext = function (str) {
+        p.on('text', function (str) {
 
             if (estack[0] === undefined) {
 
@@ -221,10 +225,10 @@
 
             }
 
-        };
+        });
 
 
-        p.onopentag = function (node) {
+        p.on('opentag', function (node) {
 
             // maintain the xml:space stack
 
@@ -278,14 +282,14 @@
             }
 
             // Make ttaf1 namespaces ttml ones.
-            rewriteNamespace(node);
-            if (node.attributes) {
-                for (var attr in node.attributes) {
-                    if (node.attributes.hasOwnProperty(attr)) {
-                        rewriteNamespace(node.attributes[attr]);
-                    }
-                }
-            }
+            // rewriteNamespace(node);
+            // if (node.attributes) {
+            //     for (var attr in node.attributes) {
+            //         if (node.attributes.hasOwnProperty(attr)) {
+            //             rewriteNamespace(node.attributes[attr]);
+            //         }
+            //     }
+            // }
 
             /* process the element */
 
@@ -605,7 +609,7 @@
 
             }
 
-        };
+        });
 
         // parse the document
 
@@ -1913,7 +1917,7 @@
 
 
 })(typeof exports === 'undefined' ? this.imscDoc = {} : exports,
-        typeof sax === 'undefined' ? require("sax") : sax,
+        typeof saxes === 'undefined' ? require("saxes") : saxes,
         typeof imscNames === 'undefined' ? require("./names") : imscNames,
         typeof imscStyles === 'undefined' ? require("./styles") : imscStyles,
         typeof imscUtils === 'undefined' ? require("./utils") : imscUtils);
