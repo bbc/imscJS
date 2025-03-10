@@ -1,0 +1,14 @@
+[{"colorSelector": "*", "colorGenerator": {"exactColor": "fuchsia"}}]
+
+[{"colorSelector": "yellow", "colorGenerator": {"exactColor": "blue"}}, {"colorSelector": "*", "colorGenerator": {"exactColor": "fuchsia"}}]
+
+[{"colorSelector": "yellow", "colorGenerator": {"exactColor": "blue"}}, {"colorSelector": "white", "colorGenerator": {"exactColor": "yellow"}}, {"colorSelector": "*", "colorGenerator": {"exactColor": "fuchsia"}}]
+
+[{"colorSelector": "*", "colorGenerator": {"desaturate": "50"}}]
+
+[{"colorSelector": "*", "colorGenerator": {"darken": "50"}}]
+
+[{"colorSelector": "*", "colorGenerator": {"spin": "50"}}]
+
+
+[{"colorSelector": "white", "colorGenerator": {"darken": "20"}}, {"colorSelector": "*", "colorGenerator": {"spin": "0"}}]
