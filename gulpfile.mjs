@@ -1,5 +1,5 @@
 import gulp from "gulp";
-const rollup = require('rollup');
+import {rollup} from 'rollup';
 import {terser} from 'rollup-plugin-terser';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from "@rollup/plugin-commonjs";
@@ -26,13 +26,12 @@ function bundle(debug) {
         file: 'dist/imsc.all.' + (debug ? 'debug' : 'min') + '.mjs'
     };
 
-    return rollup.rollup(inConfig)
+    return rollup(inConfig)
         .then(bundle => {
             return bundle.write(outConfig)
         });
 };
 
 
-exports.both = gulp.parallel(bundle.bind(null, true), bundle.bind(null, false));
-exports.default = exports.both;
+export default gulp.parallel(bundle.bind(null, true), bundle.bind(null, false));
 
