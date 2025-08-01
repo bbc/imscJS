@@ -683,7 +683,7 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
             }
             // add the breakafter attribute to any lines until the
             // last to workaround chrome calculation being wrong
-            if (l<(lineList.length-1) && lineList[l].elements[0] && lineList[l].elements[0].node) {
+            if (l<(lineList.length-1) && lineList[l].br===false && lineList[l].elements[0] && lineList[l].elements[0].node) {
               lineList[l].elements[0].node.setAttribute("breakafter","breakafter");
             }
         }
