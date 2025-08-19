@@ -833,7 +833,7 @@ var browserIsFirefox = /firefox/i.test(navigator.userAgent);
 
             if (l !== 0 && lineList[i].br === false) {
                 var br = document.createElement("br");
-
+                lineList[i].br = true;
                 var lastnode = lineList[i].elements[l - 1].node;
 
                 lastnode.parentElement.insertBefore(br, lastnode.nextSibling);
