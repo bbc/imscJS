@@ -13,7 +13,7 @@
         "src/main/js",
         "README.txt",
         "dist",
-        "gulpfile.js",
+        "gulpfile.mjs",
         "npm-shrinkwrap.json"
     ],
     "keywords": [
