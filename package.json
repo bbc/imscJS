@@ -12,7 +12,9 @@
     "files": [
         "src/main/js",
         "README.txt",
-        "dist"
+        "dist",
+        "gulpfile.js",
+        "npm-shrinkwrap.json"
     ],
     "keywords": [
         "imsc1",
@@ -29,7 +31,12 @@
     "author": "Pierre-Anthony Lemieux <pal@sandflow.com>",
     "main": "src/main/js/main.js",
     "scripts": {
-        "build": "grunt build:release && gulp",
+        "localBuild": "npm run release",
+        "intBuild": "npm run release && gulp deploy",
+        "release": "grunt build:release && gulp release",
+        "deployTest": "gulp deploy",
+        "deployStage": "gulp deploy",
+        "deployLive": "gulp deploy",
         "postversion": "git push && git push --tags"
     },
     "dependencies": {
@@ -50,6 +57,7 @@
         "grunt-npmcopy": "latest",
         "grunt-sync": "latest",
         "gulp": "^5.0.0",
+        "gulp-gzip": "^1.4.2",
         "jszip": "latest",
         "node-qunit": "^1.0.0",
         "qunit-assert-close": "latest",

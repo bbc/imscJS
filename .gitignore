@@ -4,3 +4,6 @@ dist/
 nbproject/private
 ga.js
 .vscode/
+deploy/
+.idea
+*.iml
